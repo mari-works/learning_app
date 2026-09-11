@@ -1,0 +1,160 @@
+{% extends 'base.html' %}
+
+{% block title %}問題演習{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/practice.css') }}" />
+{% endblock %}
+
+{% block content %}
+<div class="practice-entry dashboard-page mx-auto max-w-7xl">
+  <section class="practice-choice-panel">
+    <div class="practice-entry-heading">
+      <h2>演習モードを選択</h2>
+      <p>目的や状況に合わせて演習方法を選びましょう。</p>
+    </div>
+
+    <div class="practice-choice-grid">
+      <a href="{{ url_for('practice_settings', mode='normal') }}" class="practice-method-card practice-method-blue">
+        <div class="practice-method-head">
+          <span class="practice-method-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" class="practice-svg">
+              <path d="M5 19h4l9.5-9.5a2.1 2.1 0 0 0-3-3L6 16l-1 3Z"></path>
+              <path d="M14 8l2 2"></path>
+              <path d="M4 21h16"></path>
+            </svg>
+          </span>
+          <div>
+            <h3>通常演習モード</h3>
+            <strong>日々の復習や理解度チェックに</strong>
+          </div>
+        </div>
+        <p class="practice-method-lead">ランダム演習、カテゴリ演習、間違えた問題演習から選んで、理解度に合わせて解けます。</p>
+
+        <div class="mode-list">
+          <span class="mode-row blue">
+            <i>⤨</i>
+            <strong>ランダム演習</strong>
+            <em>全分野からランダム出題</em>
+          </span>
+          <span class="mode-row green">
+            <i>▰</i>
+            <strong>カテゴリ演習</strong>
+            <em>カテゴリを選んで出題</em>
+          </span>
+          <span class="mode-row orange">
+            <i>×</i>
+            <strong>間違えた問題演習</strong>
+            <em>過去に間違えた問題のみ出題</em>
+          </span>
+        </div>
+
+        <span class="practice-method-button blue">通常演習へ進む <b>›</b></span>
+      </a>
+
+      {% if exam_settings.enabled %}
+      <a href="{{ url_for('practice_settings', mode='exam') }}" class="practice-method-card practice-method-green">
+      {% else %}
+      <div class="practice-method-card practice-method-disabled" aria-disabled="true">
+      {% endif %}
+        <div class="practice-method-head">
+          <span class="practice-method-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" class="practice-svg">
+              <path d="M12 6.5a6.5 6.5 0 1 0 0 13 6.5 6.5 0 0 0 0-13Z"></path>
+              <path d="M12 10v3.5l2.2 1.4"></path>
+              <path d="M9 3h6"></path>
+              <path d="M12 3v3"></path>
+              <path d="M18 7l1.4-1.4"></path>
+            </svg>
+          </span>
+          <div>
+            <h3>試験モード</h3>
+            <strong>{{ '本番形式で実力を試す' if exam_settings.enabled else 'この教材では未設定です' }}</strong>
+          </div>
+        </div>
+        <p class="practice-method-lead">{% if exam_settings.enabled %}登録された問題数と制限時間で解答します。{% else %}教材データ画面で試験の問題数と制限時間を設定すると利用できます。{% endif %}</p>
+
+        <div class="mode-list exam-list">
+          <span class="mode-row {{ 'green' if exam_settings.enabled else '' }}">
+            <i>▱</i>
+            <strong>設定された試験</strong>
+            <em>{% if exam_settings.enabled %}{{ exam_settings.questions }}問 / {{ exam_settings.minutes }}分{% else %}問題数・制限時間 未設定{% endif %}</em>
+          </span>
+        </div>
+
+        {% if exam_settings.enabled %}
+          <span class="practice-method-button green">試験モードへ進む <b>›</b></span>
+        {% else %}
+          <span class="practice-method-button bg-slate-300 text-slate-600">試験の設定をすると使えます</span>
+        {% endif %}
+      {% if exam_settings.enabled %}
+      </a>
+      {% else %}
+      </div>
+      {% endif %}
+    </div>
+  </section>
+
+  <section class="practice-status-panel">
+    <div class="practice-status-head">
+      <span class="practice-status-icon">▥</span>
+      <div>
+        <h2>現在の演習状況</h2>
+        <p>あなたの演習結果を確認できます。</p>
+      </div>
+    </div>
+
+    <div class="practice-status-stats">
+      <article class="practice-stat-card accuracy">
+        <h3>正答率</h3>
+        <strong>{{ practice_summary.accuracy }}<small>%</small></strong>
+      </article>
+      <article class="practice-stat-card green">
+        <span>✓</span>
+        <div>
+          <h3>正解数</h3>
+          <strong>{{ practice_summary.correct }}<small>問</small></strong>
+        </div>
+      </article>
+      <article class="practice-stat-card red">
+        <span>×</span>
+        <div>
+          <h3>不正解数</h3>
+          <strong>{{ practice_summary.incorrect }}<small>問</small></strong>
+        </div>
+      </article>
+      <article class="practice-stat-card slate">
+        <span>-</span>
+        <div>
+          <h3>未回答数</h3>
+          <strong>{{ practice_summary.unanswered }}<small>問</small></strong>
+        </div>
+      </article>
+    </div>
+
+    <a href="{{ url_for('statistics') }}" class="practice-stats-link">統計情報を詳しく見る <b>›</b></a>
+  </section>
+
+  {% if resume_card %}
+    <section class="practice-resume-panel">
+      <div>
+        <h2>前回の続きから再開</h2>
+        <p>途中で中断した演習の続きから再開できます。</p>
+      </div>
+      <div class="resume-detail">
+        <span class="resume-icon">▰</span>
+        <div>
+          <strong class="safe-text clamp-2">{{ resume_card.mode_label }}：{{ resume_card.category }}</strong>
+          <p>進捗 {{ resume_card.answered }} / {{ resume_card.total }}問</p>
+        </div>
+      </div>
+      <div class="resume-progress">
+        <span>正答率</span>
+        <strong>{{ resume_card.accuracy }}%</strong>
+        <i><b style="width: {{ resume_card.progress_rate }}%;"></b></i>
+      </div>
+      <a href="{{ resume_card.url }}" class="resume-button">続きから再開 <b>›</b></a>
+    </section>
+  {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,110 @@
+{% extends 'base.html' %}
+
+{% block title %}用語一覧{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/keywords.css', v='20260911') }}" />
+{% endblock %}
+
+{% block content %}
+<div class="keywords-page dashboard-page mx-auto max-w-7xl">
+  <section class="keyword-search-card">
+    <form method="get" class="keyword-filter-form">
+      <label class="keyword-search-box">
+        <span>⌕</span>
+        <input name="search" type="search" value="{{ search }}" placeholder="用語名・説明から検索" />
+      </label>
+
+      <div class="keyword-filter-panel">
+        <label class="filter-field">
+          <span>カテゴリ</span>
+          <select name="category">
+            <option value="">すべて</option>
+            {% for item in all_categories %}
+              <option value="{{ item.category }}" {% if item.category == selected_category %}selected{% endif %}>{{ item.category }}</option>
+            {% endfor %}
+          </select>
+        </label>
+
+        <label class="filter-field">
+          <span>理解度</span>
+          <select name="status">
+            <option value="">すべて</option>
+            <option value="未学習" {% if selected_status == '未学習' %}selected{% endif %}>未学習</option>
+            <option value="未理解" {% if selected_status == '未理解' %}selected{% endif %}>未理解</option>
+            <option value="あいまい" {% if selected_status == 'あいまい' %}selected{% endif %}>あいまい</option>
+            <option value="理解済み" {% if selected_status == '理解済み' %}selected{% endif %}>理解済み</option>
+          </select>
+        </label>
+
+        <label class="review-filter">
+          <input type="checkbox" name="review_later" value="1" {% if selected_review_later %}checked{% endif %} />
+          <span>
+            <strong>あとで確認</strong>
+            <small>追加した用語のみ</small>
+          </span>
+        </label>
+
+        <div class="filter-actions">
+          <button type="submit" class="search-submit">検索</button>
+          <a href="{{ url_for('keywords') }}" class="reset-link">↻ リセット</a>
+        </div>
+      </div>
+    </form>
+  </section>
+
+  <p class="keyword-result-count">{{ keywords|length }}語の用語が見つかりました</p>
+
+  <section class="keyword-list-card">
+    <div class="keyword-table-head">
+      <span>用語</span>
+      <span>説明</span>
+      <span>カテゴリ</span>
+      <span>理解度</span>
+      <span>あとで確認</span>
+    </div>
+
+    {% if keywords %}
+      <div class="keyword-table-body">
+        {% for keyword in keywords %}
+          <div class="keyword-row">
+            <a href="{{ url_for('keyword_detail', keyword_id=keyword.id) }}" class="keyword-main">
+              <strong class="safe-text clamp-2">{{ keyword.keyword }}</strong>
+            </a>
+
+            <a href="{{ url_for('keyword_detail', keyword_id=keyword.id) }}" class="keyword-description safe-text clamp-2">{{ keyword.meaning }}</a>
+
+            <span class="category-pill category-tone-{{ category_tones.get(keyword.category, 7) }}">
+              {{ keyword.category }}
+            </span>
+
+            {% if keyword.learning_status == '理解済み' %}
+              <span class="status-pill status-green">理解済み</span>
+            {% elif keyword.learning_status == 'あいまい' %}
+              <span class="status-pill status-amber">あいまい</span>
+            {% elif keyword.learning_status == '未理解' %}
+              <span class="status-pill status-rose">未理解</span>
+            {% else %}
+              <span class="status-pill status-slate">未学習</span>
+            {% endif %}
+
+            <button
+              type="button"
+              class="review-star {% if keyword.review_later %}is-active{% endif %}"
+              data-keyword-id="{{ keyword.id }}"
+              data-review-later="{{ 1 if keyword.review_later else 0 }}"
+              aria-label="あとで確認を切り替え"
+            >{% if keyword.review_later %}★{% else %}☆{% endif %}</button>
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="keyword-empty">該当する用語がありません。</div>
+    {% endif %}
+  </section>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/keywords.js') }}"></script>
+{% endblock %}

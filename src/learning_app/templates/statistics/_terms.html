@@ -1,0 +1,314 @@
+  <section class="stats-tab-panel is-active" data-stats-panel="terms">
+    <section class="overall-card">
+      <div class="overall-left">
+        <h2>全体理解度</h2>
+        <div class="donut-row">
+          <div class="summary-donut" style="background: {{ donut_style }};">
+            <div>
+              <strong>{{ overall_status[0].rate }}%</strong>
+              <span>理解度</span>
+            </div>
+          </div>
+          <div class="donut-legend">
+            {% for item in overall_status %}
+              {% if item.in_understanding %}<span class="{{ item.tone }}"><i></i>{{ item.label }} <b>{{ item.count }}語</b> <em>{{ item.rate }}%</em></span>{% endif %}
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+
+      <div class="summary-metric blue">
+        <span>▣</span>
+        <p>総用語数</p>
+        <strong>{{ analysis_total }}<small>語</small></strong>
+      </div>
+      {% for item in overall_status %}
+        <div class="summary-metric {{ item.tone }}">
+          <span>{{ item.icon }}</span>
+          <p>{{ item.label }}</p>
+          <strong>{{ item.count }}<small>語</small></strong>
+          <em>{{ item.rate }}%</em>
+        </div>
+      {% endfor %}
+    </section>
+
+    <div class="middle-grid">
+      <section class="review-card">
+        <div class="card-head">
+          <h2>要復習用語</h2>
+          <span>?</span>
+        </div>
+        <div class="review-count">
+          <span>↻</span>
+          <strong>{{ review_count }}<small>語</small></strong>
+        </div>
+        {% if review_count %}
+          <p>あいまい・未理解のうち、優先して確認したい用語です。</p>
+          <div class="review-breakdown">
+            <div class="red">
+              <span>未理解</span>
+              <strong>{{ overall_status[2].count }}語</strong>
+            </div>
+            <div class="amber">
+              <span>あいまい</span>
+              <strong>{{ overall_status[1].count }}語</strong>
+            </div>
+          </div>
+          <a href="{{ url_for('start_home_term_review') }}" class="review-button">フラッシュカードで復習する <b>›</b></a>
+          <small>要復習用語だけを出題します</small>
+        {% else %}
+          <p>現在、要復習用語はありません。</p>
+          <span class="review-button is-disabled">復習対象はありません</span>
+          <small>未理解またはあいまいの用語が記録されると復習できます</small>
+        {% endif %}
+      </section>
+
+      <section class="trend-card">
+        <div class="trend-head">
+          <div class="card-head">
+            <h2>理解度推移</h2>
+            <span>?</span>
+          </div>
+          <div class="period-tabs">
+            {% for key, label in [('7','7日'), ('30','30日'), ('90','90日'), ('all','全期間')] %}
+              <button type="button" class="{% if key == '30' %}is-active{% endif %}" data-trend-tab="{{ key }}">{{ label }}</button>
+            {% endfor %}
+          </div>
+        </div>
+
+        <div class="trend-chart-wrap">
+          {% for key, trend in trend_periods.items() %}
+            <svg viewBox="0 0 760 190" class="trend-chart {% if key == '30' %}is-active{% endif %}" data-trend-panel="{{ key }}" preserveAspectRatio="none">
+              <line x1="24" y1="45" x2="736" y2="45"></line>
+              <line x1="24" y1="85" x2="736" y2="85"></line>
+              <line x1="24" y1="125" x2="736" y2="125"></line>
+              <line x1="24" y1="170" x2="736" y2="170"></line>
+              <polygon points="{{ trend.area }}"></polygon>
+              <polyline points="{{ trend.polyline }}"></polyline>
+              {% for point in trend.points %}
+                <circle cx="{{ point.x }}" cy="{{ point.y }}" r="{% if loop.last or loop.first %}4.2{% else %}3.2{% endif %}"></circle>
+                {% if loop.first or loop.last %}
+                  <text x="{{ point.x }}" y="{{ point.y - 12 }}">{{ point.rate }}%</text>
+                {% endif %}
+              {% endfor %}
+              <text x="24" y="186">{{ trend.points[0].label }}</text>
+              <text x="374" y="186">中間</text>
+              <text x="716" y="186">今日</text>
+            </svg>
+          {% endfor %}
+        </div>
+
+        <div class="trend-stat-grid">
+          {% for key, trend in trend_periods.items() %}
+            <div class="trend-stat-set {% if key == '30' %}is-active{% endif %}" data-trend-stats="{{ key }}">
+              <article>
+                <span>{{ trend.before_label }}</span>
+                <strong>{{ trend.before_rate }}%</strong>
+              </article>
+              <article>
+                <span>現在の理解度</span>
+                <strong>{{ trend.current_rate }}%</strong>
+              </article>
+              <article class="green">
+                <span>変化{% if key != 'all' %}（{{ trend.days }}日間）{% endif %}</span>
+                <strong>{{ '+' if trend.change > 0 else '' }}{{ trend.change }}ポイント</strong>
+              </article>
+            </div>
+          {% endfor %}
+        </div>
+      </section>
+    </div>
+
+    <section class="detail-card">
+      <div class="detail-head">
+        <h2>詳細分析</h2>
+        <p>分析項目を選択すると、下の内容だけ切り替わります。</p>
+      </div>
+      <div class="analysis-chip-row" role="tablist" aria-label="詳細分析">
+        {% for key, label in [
+          ('weak-terms','苦手用語ランキング'),
+          ('category-understanding','カテゴリ別理解度'),
+          ('review-terms','要復習用語'),
+          ('growth-terms','成長した用語'),
+          ('forgetting-terms','忘れそうな用語')
+        ] %}
+          <button type="button" class="analysis-chip {% if loop.first %}is-active{% endif %}" data-analysis-tab="{{ key }}">{{ label }}</button>
+        {% endfor %}
+      </div>
+
+      <div class="analysis-content is-active" data-analysis-panel="weak-terms">
+        {% if not term_detail_analysis.has_history %}
+          <div class="empty-analysis">用語を学習すると、詳細分析が表示されます。</div>
+        {% elif term_detail_analysis.weak_terms %}
+          <div class="analysis-toolbar">
+            <label>カテゴリ
+              <select data-detail-category-filter>
+                <option value="all">すべて</option>
+                {% for category_item in term_detail_analysis.category_understanding %}
+                  <option value="{{ category_item.name }}">{{ category_item.name }}</option>
+                {% endfor %}
+              </select>
+            </label>
+          </div>
+          <div class="term-analysis-table weak-term-table">
+            <div class="term-analysis-head"><span>順位</span><span>用語名</span><span>カテゴリ</span><span>現在</span><span>未理解</span><span>あいまい</span><span>最終学習日</span><span></span></div>
+            {% for item in term_detail_analysis.weak_terms %}
+              <div class="term-analysis-row" data-detail-category="{{ item.category }}" {% if loop.index > 10 %}data-extra-weak hidden{% endif %}>
+                <b class="{% if loop.index <= 3 %}rank-top{% endif %}">{{ loop.index }}</b>
+                <strong class="safe-text clamp-2">{{ item.keyword }}</strong>
+                <span class="safe-text clamp-2">{{ item.category }}</span>
+                <mark class="status-{{ item.status_tone }}">{{ item.status_label }}</mark>
+                <em>{{ item.unknown_count }}</em>
+                <em>{{ item.ambiguous_count }}</em>
+                <span>{{ item.last_reviewed_label }}</span>
+                <a href="{{ url_for('flashcards', keyword_id=item.id, limit=10, direction='term_to_meaning') }}">この用語を復習</a>
+              </div>
+            {% endfor %}
+          </div>
+          {% if term_detail_analysis.weak_terms|length > 10 %}
+            <button type="button" class="show-more-analysis" data-show-weak-more>もっと見る</button>
+          {% endif %}
+          <div class="empty-analysis" data-category-empty hidden>選択したカテゴリのデータはありません。</div>
+        {% else %}
+          <div class="empty-analysis">苦手用語はまだありません。</div>
+        {% endif %}
+      </div>
+
+      <div class="analysis-content" data-analysis-panel="category-understanding">
+        <div class="analysis-toolbar">
+          <label>並び替え
+            <select data-category-sort>
+              <option value="low">理解度が低い順</option>
+              <option value="high">理解度が高い順</option>
+              <option value="unknown">未理解数が多い順</option>
+              <option value="untrained">未学習数が多い順</option>
+              <option value="name">カテゴリ名順</option>
+            </select>
+          </label>
+        </div>
+        <div class="term-analysis-table category-term-table">
+          <div class="term-analysis-head"><span>カテゴリ名</span><span>理解度</span><span>理解済み</span><span>あいまい</span><span>未理解</span><span>未学習</span><span>総用語数</span><span>状態</span><span>進捗</span></div>
+          {% for item in term_detail_analysis.category_understanding %}
+            <div class="term-analysis-row" data-category-row data-rate="{{ item.rate }}" data-name="{{ item.name }}" data-unknown="{{ item.unknown }}" data-untrained="{{ item.untrained }}">
+              <strong class="safe-text clamp-2">{{ item.name }}</strong>
+              <em>{{ item.rate }}%</em>
+              <em>{{ item.understood }}</em>
+              <em>{{ item.ambiguous }}</em>
+              <em>{{ item.unknown }}</em>
+              <em>{{ item.untrained }}</em>
+              <em>{{ item.total }}</em>
+              <mark class="status-{{ item.tone }}">{{ item.label }}</mark>
+              <i class="term-progress"><u style="width: {{ item.rate }}%;"></u></i>
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+
+      <div class="analysis-content" data-analysis-panel="review-terms">
+        {% if not term_detail_analysis.has_history %}
+          <div class="empty-analysis">用語を学習すると、詳細分析が表示されます。</div>
+        {% elif term_detail_analysis.review_terms %}
+          <div class="analysis-toolbar">
+            <label>カテゴリ
+              <select data-detail-category-filter>
+                <option value="all">すべて</option>
+                {% for category_item in term_detail_analysis.category_understanding %}
+                  <option value="{{ category_item.name }}">{{ category_item.name }}</option>
+                {% endfor %}
+              </select>
+            </label>
+          </div>
+          <div class="term-analysis-table review-term-table" data-review-list>
+            <div class="term-analysis-head"><span>用語名</span><span>カテゴリ</span><span>現在</span><span>最終学習日</span><span>経過</span><span>未理解</span><span>あいまい</span><span>優先度</span><span></span></div>
+            {% for item in term_detail_analysis.review_terms %}
+              <div class="term-analysis-row" data-detail-category="{{ item.category }}" {% if loop.index > 10 %}data-extra-review hidden{% endif %}>
+                <strong class="safe-text clamp-2">{{ item.keyword }}</strong>
+                <span class="safe-text clamp-2">{{ item.category }}</span>
+                <mark class="status-{{ item.status_tone }}">{{ item.status_label }}</mark>
+                <span>{{ item.last_reviewed_label }}</span>
+                <em>{{ item.days_since }}日</em>
+                <em>{{ item.unknown_count }}</em>
+                <em>{{ item.ambiguous_count }}</em>
+                <mark class="status-{{ item.priority_tone }}">{{ item.priority_label }}</mark>
+                <a href="{{ url_for('flashcards', keyword_id=item.id, limit=10, direction='term_to_meaning') }}">復習</a>
+              </div>
+            {% endfor %}
+          </div>
+          <div class="empty-analysis" data-category-empty hidden>選択したカテゴリのデータはありません。</div>
+          {% if term_detail_analysis.review_terms|length > 10 %}
+            <button type="button" class="show-more-analysis" data-show-review-more>さらに表示</button>
+          {% endif %}
+        {% else %}
+          <div class="empty-analysis">現在、優先して復習する用語はありません。</div>
+        {% endif %}
+      </div>
+
+      <div class="analysis-content" data-analysis-panel="growth-terms">
+        {% if not term_detail_analysis.has_history %}
+          <div class="empty-analysis">用語を学習すると、詳細分析が表示されます。</div>
+        {% elif term_detail_analysis.growth_terms %}
+          <div class="analysis-toolbar">
+            <label>カテゴリ
+              <select data-detail-category-filter>
+                <option value="all">すべて</option>
+                {% for category_item in term_detail_analysis.category_understanding %}
+                  <option value="{{ category_item.name }}">{{ category_item.name }}</option>
+                {% endfor %}
+              </select>
+            </label>
+          </div>
+          <div class="term-analysis-table growth-term-table">
+            <div class="term-analysis-head"><span>用語名</span><span>カテゴリ</span><span>過去の未理解</span><span>過去のあいまい</span><span>理解済みになった日</span><span>変化</span></div>
+            {% for item in term_detail_analysis.growth_terms %}
+              <div class="term-analysis-row" data-detail-category="{{ item.category }}">
+                <strong class="safe-text clamp-2">{{ item.keyword }}</strong>
+                <span class="safe-text clamp-2">{{ item.category }}</span>
+                <em>{{ item.past_unknown_count }}</em>
+                <em>{{ item.past_ambiguous_count }}</em>
+                <span>{{ item.understood_label }}</span>
+                <mark class="status-green">{{ item.change_label }}</mark>
+              </div>
+            {% endfor %}
+          </div>
+          <div class="empty-analysis" data-category-empty hidden>選択したカテゴリのデータはありません。</div>
+        {% else %}
+          <div class="empty-analysis">理解度の変化が記録されると、成長した用語が表示されます。</div>
+        {% endif %}
+      </div>
+
+      <div class="analysis-content" data-analysis-panel="forgetting-terms">
+        {% if not term_detail_analysis.has_history %}
+          <div class="empty-analysis">用語を学習すると、詳細分析が表示されます。</div>
+        {% elif term_detail_analysis.forgetting_terms %}
+          <div class="analysis-toolbar">
+            <label>カテゴリ
+              <select data-detail-category-filter>
+                <option value="all">すべて</option>
+                {% for category_item in term_detail_analysis.category_understanding %}
+                  <option value="{{ category_item.name }}">{{ category_item.name }}</option>
+                {% endfor %}
+              </select>
+            </label>
+          </div>
+          <div class="term-analysis-table forgetting-term-table">
+            <div class="term-analysis-head"><span>用語名</span><span>カテゴリ</span><span>最終学習日</span><span>経過</span><span>過去の未理解</span><span>過去のあいまい</span><span>状態</span><span></span></div>
+            {% for item in term_detail_analysis.forgetting_terms %}
+              <div class="term-analysis-row" data-detail-category="{{ item.category }}">
+                <strong class="safe-text clamp-2">{{ item.keyword }}</strong>
+                <span class="safe-text clamp-2">{{ item.category }}</span>
+                <span>{{ item.last_reviewed_label }}</span>
+                <em>{{ item.days_since }}日</em>
+                <em>{{ item.unknown_count }}</em>
+                <em>{{ item.ambiguous_count }}</em>
+                <mark class="status-{{ item.risk_tone }}">{{ item.risk_label }}</mark>
+                <a href="{{ url_for('flashcards', keyword_id=item.id, limit=10, direction='term_to_meaning') }}">復習</a>
+              </div>
+            {% endfor %}
+          </div>
+          <div class="empty-analysis" data-category-empty hidden>選択したカテゴリのデータはありません。</div>
+        {% else %}
+          <div class="empty-analysis">長期間復習していない理解済み用語はありません。</div>
+        {% endif %}
+      </div>
+    </section>
+  </section>

@@ -1,0 +1,211 @@
+{% extends 'base.html' %}
+
+{% block title %}フラッシュカード学習{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/flashcard_settings.css') }}" />
+{% endblock %}
+
+{% block content %}
+<div class="dashboard-page mx-auto max-w-6xl">
+  <section class="rounded-2xl border border-emerald-100 bg-emerald-50 p-5 shadow-sm">
+    <div class="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+      <div class="min-w-0 flex-1">
+        <div class="flex items-center gap-2">
+          <span class="text-emerald-700">★</span>
+          <h2 class="text-lg font-bold text-emerald-900">今日のおすすめ</h2>
+          {% if term_recommendation.completed_today %}
+            <span class="rounded-full bg-emerald-100 px-3 py-1 text-xs font-black text-emerald-700">本日実施済み</span>
+          {% endif %}
+        </div>
+        <p class="safe-text clamp-2 mt-2 text-sm font-semibold text-emerald-800">ホームと同じおすすめです。{{ term_recommendation.display_title }}</p>
+        <div class="mt-5 grid gap-3 sm:grid-cols-2">
+          <div class="recommend-stat">
+            <span class="recommend-mark warn">!</span>
+            <span>おすすめカテゴリ</span>
+            <strong class="recommend-text safe-text clamp-2">{{ term_recommendation.primary_label }}</strong>
+            <small>{{ term_recommendation.reason }}</small>
+          </div>
+          <div class="recommend-stat">
+            <span class="recommend-mark danger">?</span>
+            <span>今日の出題数</span>
+            <strong>{{ term_recommendation.goal_label }}</strong>
+            <small>{% if term_recommendation.completed_today %}一度学習済みです{% else %}ホームと同じ条件で開始します{% endif %}</small>
+          </div>
+        </div>
+      </div>
+      <a href="{{ term_recommendation.url }}" class="inline-flex items-center justify-center rounded-xl bg-emerald-600 px-7 py-4 text-sm font-bold text-white shadow-sm transition hover:bg-emerald-700">{{ term_recommendation.settings_button_label }} →</a>
+    </div>
+  </section>
+
+  <div class="resume-quick-grid mt-4 grid gap-4 lg:grid-cols-2">
+    <button
+      id="resume-card"
+      type="button"
+      class="side-panel side-panel--blue {% if not resume_card %}hidden{% endif %} min-h-[122px] rounded-2xl border border-blue-100 bg-blue-50 p-4 text-left shadow-sm transition hover:bg-blue-100"
+      {% if resume_card %}data-resume-url="{{ resume_card.url }}"{% endif %}
+    >
+      <div class="flex h-full flex-col gap-3 md:flex-row md:items-center md:justify-between">
+        <div class="min-w-0">
+          <div class="flex items-center gap-2">
+            <span class="text-blue-600">↻</span>
+            <h2 class="text-base font-bold text-blue-900">前回の続きから</h2>
+          </div>
+          <p id="resume-summary" class="mt-2 text-sm font-semibold text-blue-800">
+            {% if resume_card %}{{ resume_card.summary }}{% else %}保存された進捗から再開します。{% endif %}
+          </p>
+          <div class="mt-2 h-2 max-w-xs overflow-hidden rounded-full bg-white">
+            <div id="resume-progress" class="h-full rounded-full bg-blue-600" style="width: {{ resume_card.rate if resume_card else 0 }}%"></div>
+          </div>
+        </div>
+        <span class="inline-flex shrink-0 items-center justify-center rounded-xl bg-blue-600 px-5 py-3 text-sm font-bold text-white shadow-sm">続きから再開する →</span>
+      </div>
+    </button>
+
+    <section class="side-panel side-panel--orange min-h-[122px] rounded-2xl border border-orange-100 bg-orange-50 p-4 shadow-sm">
+      <div class="flex h-full flex-col gap-3 md:flex-row md:items-center md:justify-between">
+        <div class="min-w-0">
+          <div class="flex items-center gap-2">
+            <span class="text-orange-600">⚡</span>
+            <h2 class="text-base font-bold text-orange-900">すぐに始めたい方へ</h2>
+          </div>
+          <p class="mt-2 text-sm font-semibold text-orange-800">全用語からランダムに出題します。カードの裏表は開始後も切り替えできます。</p>
+        </div>
+        <a href="{{ url_for('flashcards', limit=20, random=1, direction='term_to_meaning') }}" class="inline-flex shrink-0 items-center justify-center rounded-xl bg-orange-400 px-5 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-orange-500">ランダムに開始する →</a>
+      </div>
+    </section>
+  </div>
+
+  <section class="mt-6">
+    <div>
+      <h2 class="text-2xl font-bold text-slate-950">条件を指定して学習を開始</h2>
+      <p class="mt-2 text-sm font-semibold text-slate-500">学習したい範囲や条件を設定できます。</p>
+    </div>
+
+    <form action="{{ url_for('flashcards') }}" method="get" class="mt-4 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+      <div class="setting-row">
+        <div class="setting-title">
+          <span class="setting-icon green">□</span>
+          <strong>学習範囲</strong>
+        </div>
+        <div class="setting-controls">
+          <label class="option-pill">
+            <input type="radio" name="scope" value="all" checked>
+            <span>全用語</span>
+          </label>
+          <label class="option-pill">
+            <input type="radio" name="scope" value="category">
+            <span>カテゴリを選択</span>
+          </label>
+          <select id="category-select" class="setting-select">
+            <option value="">カテゴリを選択</option>
+            {% for item in category_items %}
+              <option value="{{ item.big_category }}||{{ item.category }}">{{ item.big_category }}・{{ item.category }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+
+      <div class="setting-row">
+        <div class="setting-title">
+          <span class="setting-icon purple">◎</span>
+          <strong>出題対象</strong>
+        </div>
+        <div class="setting-controls">
+          <label class="option-pill">
+            <input type="radio" name="status" value="" checked>
+            <span>すべての用語</span>
+          </label>
+          <label class="option-pill">
+            <input type="radio" name="status" value="未理解">
+            <span>未理解のみ</span>
+          </label>
+          <label class="option-pill">
+            <input type="radio" name="status" value="あいまい">
+            <span>あいまいのみ</span>
+          </label>
+          <label class="option-pill">
+            <input type="radio" name="status" value="未学習">
+            <span>未学習のみ</span>
+          </label>
+          <label class="option-pill">
+            <input type="radio" name="status" value="理解済み">
+            <span>理解済みのみ</span>
+          </label>
+        </div>
+      </div>
+
+      <div class="setting-row">
+        <div class="setting-title">
+          <span class="setting-icon blue">↔</span>
+          <strong>出題順</strong>
+        </div>
+        <div class="setting-controls">
+          <label class="option-pill">
+            <input type="radio" name="random" value="1" checked>
+            <span>ランダム</span>
+          </label>
+          <label class="option-pill">
+            <input type="radio" name="random" value="0">
+            <span>カテゴリ順</span>
+          </label>
+        </div>
+      </div>
+
+      <div class="setting-row">
+        <div class="setting-title">
+          <span class="setting-icon slate">#</span>
+          <strong>出題数</strong>
+        </div>
+        <div class="setting-controls segmented">
+          {% for count in [10, 20, 30, 50] %}
+            <label class="segment-option">
+              <input type="radio" name="limit" value="{{ count }}" {% if count == 20 %}checked{% endif %}>
+              <span>{{ count }}問</span>
+            </label>
+          {% endfor %}
+        </div>
+      </div>
+
+      <div class="setting-row">
+        <div class="setting-title">
+          <span class="setting-icon sky">⇄</span>
+          <strong>カードの裏表</strong>
+        </div>
+        <div class="setting-controls">
+          <label class="option-pill">
+            <input type="radio" name="direction" value="meaning_to_term">
+            <span>意味 → 単語</span>
+          </label>
+          <label class="option-pill">
+            <input type="radio" name="direction" value="term_to_meaning" checked>
+            <span>単語 → 意味</span>
+          </label>
+          <span class="text-xs font-bold text-slate-500">開始後も切り替え可能</span>
+        </div>
+      </div>
+
+      <input id="selected-big-category" type="hidden" name="big_category" value="">
+      <input id="selected-category" type="hidden" name="category" value="">
+
+      <div class="border-t border-slate-200 bg-slate-50 px-5 py-6 text-center">
+        <button type="submit" class="inline-flex w-full max-w-md items-center justify-center rounded-xl bg-emerald-600 px-8 py-4 text-base font-bold text-white shadow-sm transition hover:bg-emerald-700">学習を開始する →</button>
+      </div>
+    </form>
+  </section>
+
+  <section class="mt-6 rounded-2xl border border-emerald-100 bg-emerald-50 p-5 shadow-sm">
+    <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+      <div>
+        <h2 class="text-lg font-bold text-emerald-900">学習のコツ</h2>
+        <p class="mt-2 text-sm font-semibold text-emerald-800">短時間でも毎日続けることが重要です。間違えた用語やあいまいな用語を繰り返し復習しましょう。</p>
+      </div>
+      <a href="{{ url_for('keywords') }}" class="inline-flex items-center justify-center rounded-xl bg-white px-5 py-3 text-sm font-bold text-emerald-700 shadow-sm">学習ログを見る →</a>
+    </div>
+  </section>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/flashcard_settings.js') }}"></script>
+{% endblock %}

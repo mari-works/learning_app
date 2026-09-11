@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css', v='20260911') }}" />
+    {% block extra_css %}{% endblock %}
+    <title>{% block title %}{{ material_title }}{% endblock %}</title>
+  </head>
+
+  <body class="min-h-screen bg-slate-100 text-slate-900">
+    <div class="app-viewport min-h-screen bg-slate-100">
+      {% if current_user.is_authenticated %}
+      <div class="flex h-screen overflow-hidden">
+        <aside class="hidden h-screen w-72 shrink-0 flex-col border-r border-slate-200 bg-white px-4 py-6 shadow-sm lg:flex">
+          <div class="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3">
+            <div class="flex items-center gap-3">
+              <div class="flex h-11 w-11 items-center justify-center rounded-2xl bg-sky-500 text-white shadow-sm">
+                <span class="text-base font-bold">{{ 'G' if session.get('is_guest') else (current_user.username[0]|upper if current_user.username else 'U') }}</span>
+              </div>
+              <div class="min-w-0">
+                <p class="truncate text-base font-semibold text-slate-900">{{ 'ゲスト' if session.get('is_guest') else current_user.username }}</p>
+                <p class="text-xs font-medium text-slate-500">{{ '履歴は保存されません' if session.get('is_guest') else 'ログイン中' }}</p>
+              </div>
+              <form method="post" action="{{ url_for('logout') }}" class="ml-auto">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+                <button type="submit" class="flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-lg text-slate-600 shadow-sm transition hover:bg-slate-100 hover:text-slate-900" aria-label="ログアウト" title="ログアウト">
+                  ⇥
+                </button>
+              </form>
+            </div>
+          </div>
+
+          <a href="{{ url_for('materials') }}" class="mb-8 mt-3 block rounded-xl border border-sky-200 bg-sky-50 px-4 py-3 transition hover:border-sky-300 hover:bg-sky-100" title="{{ material_title }}">
+            <span class="block text-[11px] font-bold text-sky-700">現在の教材</span>
+            <strong class="mt-1 block truncate text-sm font-bold text-slate-950">{{ material_title }}</strong>
+            <span class="mt-1 block text-xs text-slate-600">用語 {{ sidebar_material_counts.keywords }}件 ・ 問題 {{ sidebar_material_counts.questions }}件</span>
+          </a>
+
+          <nav class="space-y-2 px-1">
+            <a href="{{ url_for('home') }}" class="flex items-center gap-3 rounded-3xl px-4 py-3 text-sm font-medium text-slate-700 transition hover:bg-slate-100 hover:text-slate-900">
+              <span class="inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-slate-100 text-sky-600">🏠</span>
+              ホーム
+            </a>
+            <a href="{{ url_for('big_categories') }}" class="flex items-center gap-3 rounded-3xl px-4 py-3 text-sm font-medium text-slate-700 transition hover:bg-slate-100 hover:text-slate-900">
+              <span class="inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-slate-100 text-sky-600">📚</span>
+              用語学習
+            </a>
+            <a href="{{ url_for('practice') }}" class="flex items-center gap-3 rounded-3xl px-4 py-3 text-sm font-medium text-slate-700 transition hover:bg-slate-100 hover:text-slate-900">
+              <span class="inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-slate-100 text-sky-600">✏️</span>
+              問題演習
+            </a>
+            <a href="{{ url_for('history') }}" class="flex items-center gap-3 rounded-3xl px-4 py-3 text-sm font-medium text-slate-700 transition hover:bg-slate-100 hover:text-slate-900">
+              <span class="inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-slate-100 text-sky-600">📈</span>
+              学習履歴
+            </a>
+            <a href="{{ url_for('statistics') }}" class="flex items-center gap-3 rounded-3xl px-4 py-3 text-sm font-medium text-slate-700 transition hover:bg-slate-100 hover:text-slate-900">
+              <span class="inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-slate-100 text-sky-600">🧠</span>
+              統計情報
+            </a>
+            <a href="{{ url_for('materials') }}" class="flex items-center gap-3 rounded-3xl px-4 py-3 text-sm font-medium text-slate-700 transition hover:bg-slate-100 hover:text-slate-900">
+              <span class="inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-slate-100 text-sky-600">▤</span>
+              教材データ
+            </a>
+          </nav>
+
+          <div class="mt-auto"></div>
+        </aside>
+
+        <div class="h-screen flex-1 overflow-y-auto">
+          {% if request.endpoint != 'keyword_detail' %}
+          <header class="sticky top-0 z-10 border-b border-slate-200 bg-slate-100/80 backdrop-blur-xl px-4 py-4 lg:px-8">
+            <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p class="text-sm text-slate-500">{{ page_header_subtitle }}</p>
+                <h1 class="text-2xl font-semibold text-slate-900">{{ page_header_title }}</h1>
+              </div>
+              <form action="{{ url_for('keywords') }}" method="get" class="flex w-full flex-col gap-3 sm:flex-row sm:w-auto">
+                <label class="sr-only" for="global-search">検索</label>
+                <div class="relative flex-1">
+                  <input id="global-search" name="search" type="search" placeholder="用語を検索…" value="{{ request.args.get('search','') }}" class="w-full rounded-3xl border border-slate-300 bg-white px-4 py-3 pl-12 text-sm text-slate-700 shadow-sm focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-100" />
+                  <span class="pointer-events-none absolute inset-y-0 left-4 flex items-center text-slate-400">🔍</span>
+                </div>
+                <button type="submit" class="rounded-3xl bg-sky-600 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-sky-700">検索</button>
+              </form>
+            </div>
+          </header>
+          {% endif %}
+
+          <main class="px-4 py-6 lg:px-8">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+              {% for category, message in messages %}
+                <div class="mx-auto mb-5 max-w-7xl border px-4 py-3 text-sm font-semibold {{ 'border-emerald-200 bg-emerald-50 text-emerald-800' if category == 'success' else 'border-red-200 bg-red-50 text-red-800' }}" role="status">{{ message }}</div>
+              {% endfor %}
+            {% endwith %}
+            {% block content %}{% endblock %}
+          </main>
+        </div>
+      </div>
+      {% else %}
+      <main class="min-h-screen px-4 py-8">
+        {{ self.content() }}
+      </main>
+      {% endif %}
+    </div>
+
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+    {% block extra_js %}{% endblock %}
+  </body>
+</html>

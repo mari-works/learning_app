@@ -1,0 +1,150 @@
+{% extends 'base.html' %}
+
+{% block title %}フラッシュカード学習{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/flashcards.css') }}" />
+{% endblock %}
+
+{% block content %}
+<div class="dashboard-page mx-auto max-w-7xl">
+  <section class="flashcard-toolbar rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+    <div class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+      <div class="flex flex-wrap items-center gap-3">
+        <a href="{{ url_for('flashcard_settings') }}" class="flashcard-back-button inline-flex h-10 items-center justify-center rounded-xl border border-slate-200 bg-white px-4 text-sm font-bold text-slate-700 transition hover:bg-slate-50">← 一覧に戻る</a>
+      </div>
+      <div class="flex items-center gap-3">
+        <div class="direction-toggle">
+          <button type="button" data-direction="meaning_to_term" class="direction-btn">意味→単語</button>
+          <button type="button" data-direction="term_to_meaning" class="direction-btn">単語→意味</button>
+        </div>
+        <div class="text-right text-sm font-bold text-slate-700">
+          <span id="card-count">1</span> / <span id="total-count">{{ keywords|length }}</span>
+        </div>
+        <div class="h-2 w-36 overflow-hidden rounded-full bg-slate-200">
+          <div id="card-progress" class="h-full rounded-full bg-emerald-600" style="width: 0%"></div>
+        </div>
+        <a href="{{ url_for('flashcard_settings') }}" class="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 transition hover:bg-slate-50" aria-label="設定">⚙</a>
+      </div>
+    </div>
+  </section>
+
+  <div class="flashcard-layout mt-4 grid gap-4">
+    <section class="flashcard-study-panel rounded-2xl border border-slate-200 bg-white p-4 shadow-sm md:p-5">
+      <div id="idle-message" class="mb-3 hidden rounded-xl border border-amber-200 bg-amber-50 px-4 py-2 text-sm font-bold text-amber-800">
+        一定時間操作がなかったため、学習時間の計測を一時停止しています。
+      </div>
+      <div class="grid items-center gap-4 md:grid-cols-[48px_minmax(0,1fr)_48px]">
+        <button id="prev-btn" class="nav-circle" aria-label="前のカード">‹</button>
+
+        <div id="card-area" class="flashcard-area flex items-center justify-center">
+          <div id="flashcard" class="relative h-[22rem] w-full max-w-3xl perspective cursor-pointer">
+            <div id="card-inner" class="absolute inset-0 transition-transform duration-500 preserve-3d">
+              <div id="card-front" class="absolute inset-0 flex flex-col justify-between rounded-2xl border border-slate-200 bg-white p-6 shadow-sm backface-hidden">
+                <div class="flex justify-start">
+                  <span class="rounded-full bg-emerald-50 px-4 py-2 text-xs font-bold text-emerald-700">表面</span>
+                </div>
+                <div class="text-center">
+                  <p class="text-sm font-bold text-slate-500">Q.</p>
+                  <div id="card-description" class="mt-3 text-[1.35rem] font-bold leading-9 text-slate-950"></div>
+                </div>
+                <div class="text-center text-sm font-semibold text-slate-400">クリック / Space / Enter で答えを表示</div>
+              </div>
+
+              <div id="card-back" class="absolute inset-0 flex rotate-y-180 transform flex-col justify-between rounded-2xl border border-emerald-200 bg-emerald-50 p-6 shadow-sm backface-hidden">
+                <div class="flex justify-start">
+                  <span class="rounded-full bg-white px-4 py-2 text-xs font-bold text-emerald-700">裏面</span>
+                </div>
+                <div class="text-center">
+                  <div id="card-term" class="text-3xl font-bold text-emerald-800"></div>
+                  <div id="card-category" class="mt-4 text-sm font-bold text-emerald-700"></div>
+                </div>
+                <div class="text-center text-sm font-semibold text-emerald-700">クリック / Space / Enter で次へ</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <button id="next-btn" class="nav-circle" aria-label="次のカード">›</button>
+      </div>
+
+      <div class="mt-3 grid gap-3 md:grid-cols-3">
+        <button data-status="理解済み" data-key="1" class="status-btn answer-btn answer-green"><span class="keycap">1</span>わかった</button>
+        <button data-status="あいまい" data-key="2" class="status-btn answer-btn answer-amber"><span class="keycap">2</span>あいまい</button>
+        <button data-status="未理解" data-key="3" class="status-btn answer-btn answer-rose"><span class="keycap">3</span>わからなかった</button>
+      </div>
+
+      <div class="flashcard-shortcut-help mt-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-xs font-bold text-slate-600">
+        <span>キーボード:</span>
+        <span class="shortcut-key">Space</span>
+        <span>/</span>
+        <span class="shortcut-key">Enter</span>
+        <span>表示・次へ</span>
+        <span class="shortcut-key">1</span>
+        <span>わかった</span>
+        <span class="shortcut-key">2</span>
+        <span>あいまい</span>
+        <span class="shortcut-key">3</span>
+        <span>わからなかった</span>
+        <span class="shortcut-key">←</span>
+        <span>/</span>
+        <span class="shortcut-key">→</span>
+        <span>前後移動</span>
+      </div>
+
+    </section>
+
+    <aside class="flashcard-side side-panel side-panel--green rounded-2xl border border-emerald-100 bg-emerald-50 p-4 shadow-sm">
+      <h2 class="side-panel-title text-sm font-bold text-slate-950">学習データ</h2>
+      <div class="side-panel-list mt-3 space-y-2">
+        <div class="data-card side-panel-item">
+          <span class="data-mark data-blue">✓</span>
+          <span>今日の学習</span>
+          <strong><span id="today-total">{{ today_flashcard_counts.total }}</span>語</strong>
+        </div>
+        <div class="data-card side-panel-item">
+          <span class="data-mark data-green">○</span>
+          <span>理解済み</span>
+          <strong><span id="today-understood">{{ today_flashcard_counts.understood }}</span>語</strong>
+        </div>
+        <div class="data-card side-panel-item">
+          <span class="data-mark data-amber">?</span>
+          <span>あいまい</span>
+          <strong><span id="today-ambiguous">{{ today_flashcard_counts.ambiguous }}</span>語</strong>
+        </div>
+        <div class="data-card side-panel-item">
+          <span class="data-mark data-rose">!</span>
+          <span>未理解</span>
+          <strong><span id="today-unknown">{{ today_flashcard_counts.unknown }}</span>語</strong>
+        </div>
+      </div>
+
+      <div class="side-panel-divider mt-4 border-t border-emerald-100 pt-3">
+        <button id="pause-btn" type="button" class="pause-study-button side-panel-action side-panel-action--warning">一時中断して戻る</button>
+      </div>
+
+      <div class="side-panel-divider mt-4 border-t border-emerald-100 pt-3">
+        <p class="side-panel-subtitle text-xs font-bold text-slate-500">今回の範囲</p>
+        <p class="mt-2 text-xs font-bold leading-5 text-slate-800">
+          {% if status %}{{ status }}{% elif category %}{{ category }}{% elif big_category %}{{ big_category }}{% else %}すべての用語{% endif %}
+        </p>
+      </div>
+    </aside>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  const FLASHCARDS = {{ keywords|tojson }};
+  const START_RANDOM = {{ 'true' if random_flag else 'false' }};
+  const CARD_DIRECTION = {{ direction|tojson }};
+  const START_INDEX = {{ resume_index|tojson }};
+  const FLASHCARD_RANGE_LABEL = {{ (status or category or big_category or 'すべての用語')|tojson }};
+  const FLASHCARD_LEARNING_MODE = {{ learning_mode|tojson }};
+  const FLASHCARD_LEARNING_CATEGORY = {{ learning_category|tojson }};
+  const FLASHCARD_FILTER_STATUS = {{ status|tojson }};
+  const FLASHCARD_RETRY_URL = {{ replay_url|tojson }};
+</script>
+<script src="{{ url_for('static', filename='js/flashcards.js') }}"></script>
+{% endblock %}

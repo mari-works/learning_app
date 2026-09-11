@@ -1,0 +1,28 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "learning-app"
+version = "0.1.0"
+description = "CSV-based learning support web application"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "Flask==3.1.3",
+    "Flask-Login==0.6.3",
+    "Flask-SQLAlchemy==3.1.1",
+]
+
+[project.optional-dependencies]
+dev = ["pytest"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+learning_app = ["templates/**/*.html", "static/**/*"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]

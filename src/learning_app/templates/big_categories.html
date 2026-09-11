@@ -1,0 +1,111 @@
+{% extends 'base.html' %}
+
+{% block title %}用語学習{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/big_categories.css') }}" />
+{% endblock %}
+
+{% block content %}
+<div class="term-entry dashboard-page mx-auto max-w-7xl">
+  <section class="term-choice-panel">
+    <div class="term-entry-heading">
+      <h2>どの方法で学習を始めますか？</h2>
+      <p>あなたのスタイルに合わせて学習方法を選べます。</p>
+    </div>
+
+    <div class="term-choice-grid">
+      <a href="{{ url_for('keywords') }}" class="study-method-card study-method-blue">
+        <div class="method-head">
+          <span class="method-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" class="method-svg">
+              <path d="M4 5.5c2.8-.7 5-.2 8 1.4v12.3c-3-1.6-5.2-2.1-8-1.4V5.5Z"></path>
+              <path d="M20 5.5c-2.8-.7-5-.2-8 1.4v12.3c3-1.6 5.2-2.1 8-1.4V5.5Z"></path>
+              <path d="M12 6.9v12.3"></path>
+            </svg>
+          </span>
+          <div>
+            <h3>用語一覧</h3>
+            <strong>辞書のように確認する</strong>
+          </div>
+        </div>
+        <p class="method-lead">検索・カテゴリ・理解度で絞り込みながら、用語の意味を一覧で確認できます。</p>
+        <div class="method-divider"></div>
+        <div class="method-features">
+          <span><i>□</i>全 {{ total_terms }} 語を収録</span>
+          <span><i>▦</i>{{ category_items|length }} カテゴリで分類</span>
+          <span><i>▼</i>理解度で絞り込み</span>
+          <span><i>⌕</i>キーワード検索に対応</span>
+        </div>
+        <span class="method-button blue">用語一覧を開く <b>›</b></span>
+      </a>
+
+      <a href="{{ url_for('flashcard_settings') }}" class="study-method-card study-method-green">
+        <div class="method-head">
+          <span class="method-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" class="method-svg">
+              <path d="M5.5 6.5A2.5 2.5 0 0 1 8 4h8a2.5 2.5 0 0 1 2.5 2.5v11A2.5 2.5 0 0 1 16 20H8a2.5 2.5 0 0 1-2.5-2.5v-11Z"></path>
+              <path d="M8.5 8h7"></path>
+              <path d="M8.5 11.5h5"></path>
+              <path d="M8.5 15h6.5"></path>
+              <path d="M16 4v4h2.5"></path>
+            </svg>
+          </span>
+          <div>
+            <h3>フラッシュカード学習</h3>
+            <strong>テンポよく効率的に復習する</strong>
+          </div>
+        </div>
+        <p class="method-lead">フラッシュカード形式で出題されるので、短時間でテンポ良く復習できます。</p>
+        <div class="method-divider"></div>
+        <div class="method-features">
+          <span><i>▰</i>出題範囲を選択（全用語・カテゴリ）</span>
+          <span><i>◎</i>出題対象を選択（未理解・あいまい・理解済み）</span>
+          <span><i>↻</i>カードをめくって確認</span>
+          <span><i>◷</i>前回の続きから再開可能</span>
+        </div>
+        <span class="method-button green">フラッシュカードを始める <b>›</b></span>
+      </a>
+    </div>
+  </section>
+
+  <section class="understanding-panel">
+    <div class="understanding-head">
+      <span class="understanding-icon">▥</span>
+      <div>
+        <h2>現在の理解状況</h2>
+        <p>あなたの理解度の内訳です。</p>
+      </div>
+    </div>
+
+    <div class="understanding-stats">
+      <article class="understanding-card green">
+        <span>✓</span>
+        <div>
+          <h3>理解済み</h3>
+          <strong>{{ understanding_summary.understood.count }}<small>語</small></strong>
+          <p>{{ understanding_summary.understood.rate }}%</p>
+        </div>
+      </article>
+      <article class="understanding-card amber">
+        <span>?</span>
+        <div>
+          <h3>あいまい</h3>
+          <strong>{{ understanding_summary.ambiguous.count }}<small>語</small></strong>
+          <p>{{ understanding_summary.ambiguous.rate }}%</p>
+        </div>
+      </article>
+      <article class="understanding-card red">
+        <span>×</span>
+        <div>
+          <h3>未理解</h3>
+          <strong>{{ understanding_summary.not_understood.count }}<small>語</small></strong>
+          <p>{{ understanding_summary.not_understood.rate }}%</p>
+        </div>
+      </article>
+    </div>
+
+    <a href="{{ url_for('statistics') }}" class="stats-link">統計情報を詳しく見る <b>›</b></a>
+  </section>
+</div>
+{% endblock %}

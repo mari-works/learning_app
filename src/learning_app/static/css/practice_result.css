@@ -1,0 +1,42 @@
+.result-ring {
+  display: grid;
+  height: 220px;
+  width: 220px;
+  place-items: center;
+  border-radius: 999px;
+  background: conic-gradient(#16a34a calc(var(--score) * 1%), #d9f0e0 0);
+}
+
+.result-ring-inner {
+  display: grid;
+  height: 156px;
+  width: 156px;
+  place-items: center;
+  border-radius: 999px;
+  background: #ffffff;
+  text-align: center;
+}
+
+.result-stat {
+  border-left: 1px solid #e2e8f0;
+  padding: 14px 20px;
+}
+
+.result-stat p {
+  color: #64748b;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.result-stat strong {
+  display: block;
+  margin-top: 8px;
+  color: #0f172a;
+  font-size: 28px;
+  line-height: 1;
+}
+
+.result-stat span {
+  margin-left: 4px;
+  font-size: 13px;
+}

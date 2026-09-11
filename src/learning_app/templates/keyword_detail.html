@@ -1,0 +1,103 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ keyword.keyword }} - 詳細{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/keyword_detail.css') }}" />
+{% endblock %}
+
+{% block content %}
+<div class="term-detail-page dashboard-page">
+  <div class="term-top-row">
+    <a href="{{ url_for('keywords') }}" class="back-link">← 用語一覧へ戻る</a>
+    <a href="{{ url_for('flashcards', keyword_id=keyword.id, limit=10, direction='term_to_meaning', learning_mode='review') }}" class="study-button"><span>▣</span>カードで学習する</a>
+  </div>
+
+  {% if message %}
+    <div class="message-card">{{ message }}</div>
+  {% endif %}
+
+  <section class="term-heading">
+    <div class="term-title-actions">
+      <h1 class="safe-text">{{ keyword.keyword }}</h1>
+      <button
+        type="button"
+        id="review-later-button"
+        class="review-later-button {% if keyword.review_later %}is-active{% endif %}"
+        data-keyword-id="{{ keyword.id }}"
+        data-review-later="{{ 1 if keyword.review_later else 0 }}"
+      >
+        <span>{% if keyword.review_later %}★{% else %}☆{% endif %}</span>
+        <b>{% if keyword.review_later %}あとで確認済み{% else %}あとで確認{% endif %}</b>
+      </button>
+    </div>
+    <p class="term-category safe-text"><span>▣</span>{{ keyword.category }}</p>
+  </section>
+
+  <section class="term-main-grid">
+    <article class="detail-card meaning-card">
+      <h2>意味</h2>
+      <p class="safe-text">{{ keyword.meaning }}</p>
+    </article>
+
+    <aside class="detail-card understanding-card side-panel">
+      <h2>理解度管理 <span>ⓘ</span></h2>
+      <form method="post" id="understanding-form">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+        <input type="hidden" name="action" value="status" />
+        <div class="understanding-options">
+          <label class="understanding-option green">
+            <input type="radio" name="status" value="理解済み" {% if keyword.learning_status == '理解済み' %}checked{% endif %} />
+            <span></span>
+            <strong>理解済み</strong>
+          </label>
+          <label class="understanding-option amber">
+            <input type="radio" name="status" value="あいまい" {% if keyword.learning_status == 'あいまい' %}checked{% endif %} />
+            <span></span>
+            <strong>あいまい</strong>
+          </label>
+          <label class="understanding-option rose">
+            <input type="radio" name="status" value="未理解" {% if keyword.learning_status == '未理解' %}checked{% endif %} />
+            <span></span>
+            <strong>未理解</strong>
+          </label>
+        </div>
+        <p class="autosave-note">※選択すると自動で保存されます</p>
+        <p id="autosave-status" class="autosave-status" aria-live="polite"></p>
+      </form>
+    </aside>
+  </section>
+
+  <article class="detail-card memo-card">
+    <form method="post">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+      <input type="hidden" name="action" value="memo" />
+      <div class="card-title-row">
+        <h2>メモ</h2>
+        <span id="memo-count">0 / 1000文字</span>
+      </div>
+      <textarea id="memo-textarea" name="note" maxlength="1000" placeholder="メモを入力してください...">{{ keyword.note or '' }}</textarea>
+      <div class="memo-actions">
+        <button type="submit">保存する</button>
+      </div>
+    </form>
+  </article>
+
+  <nav class="term-nav">
+    {% if prev_keyword_id %}
+      <a href="{{ url_for('keyword_detail', keyword_id=prev_keyword_id) }}">← 前の用語</a>
+    {% else %}
+      <span></span>
+    {% endif %}
+    {% if next_keyword_id %}
+      <a href="{{ url_for('keyword_detail', keyword_id=next_keyword_id) }}">次の用語 →</a>
+    {% else %}
+      <span></span>
+    {% endif %}
+  </nav>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/keyword_detail.js') }}"></script>
+{% endblock %}

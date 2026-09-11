@@ -1,0 +1,26 @@
+{% extends 'base.html' %}
+
+{% block title %}統計情報{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/statistics.css') }}" />
+{% endblock %}
+
+{% block content %}
+<div class="stats-page dashboard-page mx-auto max-w-7xl">
+  <nav class="stats-tabs" aria-label="統計情報タブ">
+    <button type="button" class="stats-tab is-active" data-stats-tab="terms">用語学習</button>
+    <button type="button" class="stats-tab" data-stats-tab="practice">問題演習</button>
+    {# 総合分析は一時非表示。復活時は hidden を外すだけで再表示できます。 #}
+    <button type="button" class="stats-tab" data-stats-tab="overall" hidden>総合分析</button>
+  </nav>
+
+  {% include 'statistics/_terms.html' %}
+  {% include 'statistics/_practice.html' %}
+  {% include 'statistics/_overall.html' %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/statistics.js') }}"></script>
+{% endblock %}

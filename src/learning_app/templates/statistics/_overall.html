@@ -1,0 +1,222 @@
+  {# 総合分析は一時非表示。内容は保持しています。 #}
+  <section class="stats-tab-panel overall-v3" data-stats-panel="overall" hidden>
+    <section class="ov3-summary-grid">
+      <article class="ov3-summary-card blue">
+        <span>◎</span>
+        <p>理解度と正答率の一致率</p>
+        <strong>{{ overall_summary.match_rate }}<small>%</small></strong>
+        <em>前回比 +{{ overall_summary.match_delta }}pt</em>
+        <svg class="ov3-sparkline" viewBox="0 0 180 42" preserveAspectRatio="none">
+          <polyline points="2,30 24,26 46,18 68,28 90,21 112,12 134,18 156,11 178,6"></polyline>
+        </svg>
+      </article>
+      <article class="ov3-summary-card {{ overall_summary.learning_type.tone }}">
+        <span>◌</span>
+        <p>あなたの学習タイプ</p>
+        <strong class="ov3-label-strong">{{ overall_summary.learning_type.label }}</strong>
+        <em>{{ overall_summary.learning_type.description }}</em>
+        <b class="ov3-pill violet">おすすめ：{{ overall_summary.learning_type.recommend }}</b>
+      </article>
+      <article class="ov3-summary-card amber">
+        <span>♙</span>
+        <p>最優先で取り組むカテゴリ</p>
+        {% if overall_summary.top_priority_category %}
+          <strong class="ov3-label-strong">{{ overall_summary.top_priority_category.name }}</strong>
+          <em>{{ overall_summary.top_priority_category.reason }}</em>
+          <a href="#overall-detail" class="ov3-pill amber">詳細を確認する ›</a>
+        {% else %}
+          <strong class="ov3-label-strong">データ待ち</strong>
+          <em>演習データが増えると表示されます。</em>
+        {% endif %}
+      </article>
+      <article class="ov3-summary-card green">
+        <span>☰</span>
+        <p>おすすめ学習</p>
+        <strong class="ov3-label-strong">{{ overall_summary.recommended_method.label }}</strong>
+        <em>{{ overall_summary.recommended_method.description }}</em>
+        <a href="{{ overall_summary.recommended_method.url }}" class="ov3-pill green">{{ overall_summary.recommended_method.button_label }} ›</a>
+      </article>
+    </section>
+
+    <div class="ov3-main-grid">
+      <section class="ov3-map-card">
+        <div class="ov3-card-head">
+          <div>
+            <h2>カテゴリーマップ（理解度 × 正答率）</h2>
+            <p>カテゴリの理解度と演習成績のバランスを確認できます。</p>
+          </div>
+          <span>?</span>
+        </div>
+        <div class="ov3-map">
+          <div class="ov3-quadrant top-left"><strong>実力派</strong><span>理解度は低いが正答率が高い</span></div>
+          <div class="ov3-quadrant top-right"><strong>得意</strong><span>理解度・正答率ともに高い</span></div>
+          <div class="ov3-quadrant bottom-left"><strong>要注意</strong><span>理解度・正答率ともに低い</span></div>
+          <div class="ov3-quadrant bottom-right"><strong>理解したつもり</strong><span>理解度は高いが正答率が低い</span></div>
+          <span class="ov3-axis x-axis">正答率</span>
+          <span class="ov3-axis y-axis">理解度</span>
+          {% for item in overall_categories %}
+            <div class="ov3-map-point" style="left: clamp(14%, {{ item.map_x }}%, 86%); top: clamp(14%, {{ item.map_y }}%, 86%);">
+              <button type="button" class="ov3-bubble {{ item.quadrant_tone }} {% if overall_summary.top_priority_category and item.name == overall_summary.top_priority_category.name %}is-active{% endif %}" data-map-category="{{ item.name }}" title="{{ item.name }} / 理解度{{ item.term_rate }}% / 通常{{ item.normal_rate }}% / 試験{{ item.exam_rate }}" aria-label="{{ item.name }}"></button>
+            </div>
+          {% endfor %}
+          {% for item in overall_recommendations %}
+            {% if loop.index <= 4 %}
+              <button type="button" class="ov3-map-label label-{{ loop.index }} {% if item.map_x > 60 %}label-left{% endif %} {{ item.quadrant_tone }} {% if overall_summary.top_priority_category and item.name == overall_summary.top_priority_category.name %}is-active{% endif %}" data-map-category="{{ item.name }}" style="left: clamp(18%, {{ item.map_x }}%, 82%); top: clamp(18%, {{ item.map_y }}%, 82%);" title="{{ item.name }}">
+                <i></i><span>{{ item.name }}</span>
+              </button>
+            {% endif %}
+          {% endfor %}
+        </div>
+      </section>
+
+      <section class="ov3-recommend-card">
+        <div class="ov3-card-head">
+          <div>
+            <h2>おすすめ復習（上位カテゴリから分析）</h2>
+            <p>優先度の高いカテゴリをもとに、効果的な復習を提案します。</p>
+          </div>
+          <a href="#overall-guide">選び方</a>
+        </div>
+        <div class="ov3-recommend-list">
+          <div class="ov3-selected-panel">
+            {% for item in overall_categories %}
+              <article class="ov3-selected-card {% if overall_summary.top_priority_category and item.name == overall_summary.top_priority_category.name %}is-active{% endif %}" data-map-detail="{{ item.name }}">
+                <div>
+                  <span>{{ item.quadrant }}</span>
+                  <strong>{{ item.name }}</strong>
+                </div>
+                <div class="compact-metrics">
+                  <span>理解度 <strong>{{ item.term_rate }}%</strong></span>
+                  <span>通常 <strong>{{ item.normal_rate }}%</strong></span>
+                  <span>試験 <strong>{{ item.exam_rate }}%</strong></span>
+                </div>
+                <p>{{ item.reason }}</p>
+              </article>
+            {% endfor %}
+          </div>
+          {% for item in overall_recommendations %}
+            <article class="ov3-recommend-item {{ item.quadrant_tone }} {% if loop.first %}is-active{% endif %}" data-recommend-category="{{ item.name }}">
+              <b>{{ loop.index }}</b>
+              <div class="ov3-recommend-main">
+                <h3>{{ item.name }} <span>{{ item.quadrant }}</span></h3>
+                <p>{{ item.reason }}</p>
+              </div>
+              <div class="ov3-recommend-metrics">
+                <span>理解度 <strong>{{ item.term_rate }}%</strong></span>
+                <span>正答率 <strong>{{ item.normal_rate }}%</strong></span>
+                <span>優先度 <strong>{{ item.priority_star_text }}</strong></span>
+              </div>
+            </article>
+          {% else %}
+            <div class="empty-analysis">分析に必要なカテゴリデータがまだありません。</div>
+          {% endfor %}
+        </div>
+        <div class="ov3-recommend-actions">
+          <div class="ov3-recommend-note">
+            <strong>上位カテゴリを含む全分野から出題！</strong>
+            <span>複数カテゴリを横断して復習し、総合的な実力を伸ばします。</span>
+          </div>
+          <a href="{{ url_for('flashcards', category=overall_summary.recommended_category_param, limit=20, random=1, direction='term_to_meaning') }}" class="ov3-action green">フラッシュカードで復習 <span>›</span></a>
+          <a href="{{ url_for('practice_quiz', mode='category', category=overall_summary.recommended_category_param, limit=20, reset=1, start=1) }}" class="ov3-action blue">問題演習で復習 <span>›</span></a>
+        </div>
+        <small>TOP3カテゴリを中心に、複数カテゴリを組み合わせてランダム出題します。</small>
+      </section>
+    </div>
+
+    <details class="ov3-detail-card" id="overall-detail">
+      <summary class="ov3-detail-summary">
+        <div>
+          <h2>詳細分析</h2>
+          <p>分析項目を選択すると、下の内容だけ切り替わります。</p>
+        </div>
+        <aside id="overall-guide" class="ov3-guide">
+          <strong>判定の見方</strong>
+          <span><i class="assumed"></i>理解したつもり: 理解度は高いが、正答率が低い</span>
+          <span><i class="practical"></i>実力派: 理解度・正答率ともに高い</span>
+          <b>⌄</b>
+        </aside>
+      </summary>
+      <div class="ov3-detail-body">
+      <div class="analysis-chip-row" role="tablist" aria-label="総合分析 詳細分析">
+        {% for key, label in [
+          ('overall-gap','理解度と正答率の差'),
+          ('overall-practice-gap','通常演習と試験モードの差'),
+          ('overall-weak','総合苦手カテゴリTOP5'),
+          ('overall-assumed','理解したつもりカテゴリ'),
+          ('overall-exam-loss','本番で失点するカテゴリ'),
+          ('overall-practical','実力派カテゴリ'),
+          ('overall-growth','成長カテゴリ')
+        ] %}
+          <button type="button" class="analysis-chip {% if loop.first %}is-active{% endif %}" data-overall-analysis-tab="{{ key }}">{{ label }}</button>
+        {% endfor %}
+      </div>
+
+      <div class="overall-analysis-content is-active" data-overall-analysis-panel="overall-gap">
+        <div class="overall-analysis-table">
+          <div class="overall-analysis-head"><span>順位</span><span>カテゴリ</span><span>理解度</span><span>正答率</span><span>差</span><span>判定</span><span>おすすめアクション</span></div>
+          {% for item in overall_gap_ranking %}
+            <div class="overall-analysis-row" {% if loop.index > 5 %}data-extra-analysis{% endif %}>
+              <b>{{ loop.index }}</b><strong>{{ item.name }}</strong>
+              <i><em class="blue" style="width: {{ item.term_rate }}%;"></em></i>
+              <i><em class="green" style="width: {{ item.answer_rate }}%;"></em></i>
+              <span>{{ item.gap }}pt</span><mark class="{{ item.quadrant_tone }}">{{ item.quadrant }}</mark><p>{{ item.action }}</p>
+            </div>
+          {% endfor %}
+        </div>
+        <button type="button" class="show-more-analysis" data-show-more>もっと見る</button>
+      </div>
+      <div class="overall-analysis-content" data-overall-analysis-panel="overall-practice-gap">
+        <div class="mini-rank-grid">
+          {% for item in overall_practice_gap_ranking %}
+            <div class="mini-rank-card blue" {% if loop.index > 5 %}data-extra-analysis{% endif %}><b>{{ loop.index }}</b><strong>{{ item.name }}</strong><i><em style="width: {{ item.normal_rate }}%;"></em></i><span>通常 {{ item.normal_rate }}% / 試験 {{ item.exam_rate }}% / 差 {{ item.practice_gap }}pt</span></div>
+          {% endfor %}
+        </div>
+        <button type="button" class="show-more-analysis" data-show-more>もっと見る</button>
+      </div>
+      <div class="overall-analysis-content" data-overall-analysis-panel="overall-weak">
+        <div class="mini-rank-grid">
+          {% for item in overall_weak_ranking %}
+            <div class="mini-rank-card red" {% if loop.index > 5 %}data-extra-analysis{% endif %}><b>{{ loop.index }}</b><strong>{{ item.name }}</strong><i><em style="width: {{ item.priority_width }}%;"></em></i><span>{{ item.reason }}</span></div>
+          {% endfor %}
+        </div>
+        <button type="button" class="show-more-analysis" data-show-more>もっと見る</button>
+      </div>
+      <div class="overall-analysis-content" data-overall-analysis-panel="overall-assumed">
+        <div class="mini-rank-grid">
+          {% for item in assumed_categories %}
+            <div class="mini-rank-card amber" {% if loop.index > 5 %}data-extra-analysis{% endif %}><b>{{ loop.index }}</b><strong>{{ item.name }}</strong><i><em style="width: {{ item.term_rate }}%;"></em></i><span>理解度 {{ item.term_rate }}% / 正答率 {{ item.answer_rate }}%</span></div>
+          {% else %}
+            <div class="empty-analysis">理解したつもりカテゴリはありません。</div>
+          {% endfor %}
+        </div>
+        <button type="button" class="show-more-analysis" data-show-more>もっと見る</button>
+      </div>
+      <div class="overall-analysis-content" data-overall-analysis-panel="overall-exam-loss">
+        <div class="mini-rank-grid">
+          {% for item in exam_loss_categories %}
+            <div class="mini-rank-card red" {% if loop.index > 5 %}data-extra-analysis{% endif %}><b>{{ loop.index }}</b><strong>{{ item.name }}</strong><i><em style="width: {{ item.exam_rate }}%;"></em></i><span>試験モード {{ item.exam_rate }}% / 理解度 {{ item.term_rate }}%</span></div>
+          {% endfor %}
+        </div>
+        <button type="button" class="show-more-analysis" data-show-more>もっと見る</button>
+      </div>
+      <div class="overall-analysis-content" data-overall-analysis-panel="overall-practical">
+        <div class="mini-rank-grid">
+          {% for item in practical_categories %}
+            <div class="mini-rank-card green" {% if loop.index > 5 %}data-extra-analysis{% endif %}><b>{{ loop.index }}</b><strong>{{ item.name }}</strong><i><em style="width: {{ item.answer_rate }}%;"></em></i><span>正答率 {{ item.answer_rate }}% / 理解度 {{ item.term_rate }}%</span></div>
+          {% else %}
+            <div class="empty-analysis">実力派カテゴリはまだありません。</div>
+          {% endfor %}
+        </div>
+        <button type="button" class="show-more-analysis" data-show-more>もっと見る</button>
+      </div>
+      <div class="overall-analysis-content" data-overall-analysis-panel="overall-growth">
+        <div class="mini-rank-grid">
+          {% for item in overall_growth_categories %}
+            <div class="mini-rank-card green" {% if loop.index > 5 %}data-extra-analysis{% endif %}><b>{{ loop.index }}</b><strong>{{ item.name }}</strong><i><em style="width: {{ item.answer_rate }}%;"></em></i><span>正答率 {{ item.answer_rate }}% / 理解度 {{ item.term_rate }}%</span></div>
+          {% endfor %}
+        </div>
+        <button type="button" class="show-more-analysis" data-show-more>もっと見る</button>
+      </div>
+      </div>
+    </details>
+  </section>

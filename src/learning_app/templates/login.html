@@ -1,0 +1,45 @@
+{% extends 'base.html' %}
+
+{% block title %}ログイン{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/auth.css') }}" />
+{% endblock %}
+
+{% block content %}
+<div class="auth-shell">
+  <section class="auth-card">
+    <div class="auth-brand">
+      <span>G</span>
+      <div>
+        <p>{{ material_title }}</p>
+        <h1>AI for Everyone</h1>
+      </div>
+    </div>
+    <h2>ログイン</h2>
+    <p class="auth-lead">ユーザー名とパスワードを入力してください。</p>
+    {% if error %}
+      <div class="auth-error">{{ error }}</div>
+    {% endif %}
+    <form method="post" class="auth-form">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+      <label>
+        <span>ユーザー名</span>
+        <input name="username" autocomplete="username" required />
+      </label>
+      <label>
+        <span>パスワード</span>
+        <input type="password" name="password" autocomplete="current-password" required />
+      </label>
+      <button type="submit">ログイン</button>
+    </form>
+    <p class="auth-link">アカウントをお持ちでない場合は <a href="{{ url_for('register') }}">新規登録</a></p>
+    <div class="auth-divider"><span>または</span></div>
+    <form method="post" action="{{ url_for('guest_login') }}" class="auth-guest-form">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+      <button type="submit">ログインせずに使う</button>
+      <p>ゲスト利用では学習履歴・理解度・中断データは次回に引き継がれません。</p>
+    </form>
+  </section>
+</div>
+{% endblock %}

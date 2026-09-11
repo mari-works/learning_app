@@ -1,0 +1,158 @@
+{% extends 'base.html' %}
+
+{% block title %}学習履歴{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/history.css') }}" />
+{% endblock %}
+
+{% block content %}
+<div class="history-dashboard dashboard-page mx-auto max-w-7xl">
+  <section class="history-summary-section compact-card rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+    <div class="history-summary-grid grid divide-x divide-slate-200 md:grid-cols-5">
+      <div class="summary-card">
+        <span class="summary-icon green">▣</span>
+        <p>覚えた用語</p>
+        <strong>{{ status_counts['理解済み'] }}<small>語</small></strong>
+        <em>学習済み {{ studied_terms }}語</em>
+      </div>
+      <div class="summary-card">
+        <span class="summary-icon blue">✎</span>
+        <p>解いた問題</p>
+        <strong>{{ solved_problems }}<small>問</small></strong>
+        <em>履歴保存済み</em>
+      </div>
+      <div class="summary-card">
+        <span class="summary-icon indigo">◔</span>
+        <p>総学習時間</p>
+        <strong>{{ estimated_minutes // 60 }}<small>時間</small>{{ '%02d'|format(estimated_minutes % 60) }}<small>分</small></strong>
+        <em>実学習時間</em>
+      </div>
+      <div class="summary-card">
+        <span class="summary-icon green">◷</span>
+        <p>総学習日数</p>
+        <strong>{{ total_study_days }}<small>日</small></strong>
+        <em>学習した日数</em>
+      </div>
+      <div class="summary-card">
+        <span class="summary-icon orange">🔥</span>
+        <p>連続学習日数</p>
+        <strong>{{ current_streak }}<small>日</small></strong>
+        <em>{% if current_streak > 0 %}継続中{% else %}今日から再開{% endif %}</em>
+      </div>
+    </div>
+  </section>
+
+  <div class="history-main-grid mt-6 grid gap-6">
+    <section class="panel history-calendar-panel">
+      <div class="panel-head">
+        <h2>学習カレンダー</h2>
+      </div>
+      <div class="calendar-grid mt-4 grid grid-cols-[44px_repeat(7,1fr)] gap-2 text-center text-sm font-bold text-slate-500">
+        <span></span>
+        {% for day in ['月','火','水','木','金','土','日'] %}
+          <span>{{ day }}</span>
+        {% endfor %}
+        {% for week in calendar_weeks %}
+          <span class="flex items-center justify-end pr-1 text-xs text-slate-500">{{ week[0].label }}</span>
+          {% for day in week %}
+            <span class="calendar-cell calendar-level-{{ day.level }} {% if day.is_today %}is-today{% endif %} {% if not day.in_period %}is-outside{% endif %}" title="{{ day.label }}: {{ day.minutes }}分">
+              {{ day.day }}
+            </span>
+          {% endfor %}
+        {% endfor %}
+      </div>
+      <div class="calendar-scale mt-5 flex items-center gap-3 text-xs font-bold text-slate-500">
+        <span>0分</span>
+        <span class="calendar-gradient"></span>
+        <span>{{ calendar_max_minutes }}分</span>
+      </div>
+    </section>
+
+    <section class="panel history-chart-panel">
+      <div class="flex items-center justify-between gap-4">
+        <h2 class="text-2xl font-black text-slate-950">学習推移グラフ</h2>
+        <div class="flex items-center gap-3">
+          <span class="text-xs font-bold text-slate-500">表示:</span>
+          {% for key, label in [('all','全体'), ('term','用語学習'), ('practice','問題演習')] %}
+            <a href="{{ url_for('history', view=key, period=period) }}" class="filter-tab {% if view_filter == key %}is-active{% endif %}">{{ label }}</a>
+          {% endfor %}
+          <span class="ml-3 text-xs font-bold text-slate-500">期間:</span>
+          {% for days in [7, 30, 90] %}
+            <a href="{{ url_for('history', view=view_filter, period=days) }}" class="filter-tab {% if period == days %}is-active{% endif %}">{{ days }}日</a>
+          {% endfor %}
+        </div>
+      </div>
+      <div class="chart-legend-row mt-4 flex flex-wrap gap-3">
+        {% for category in chart_categories %}
+          {% if view_filter == 'all' or (view_filter == 'term' and category.name == '用語学習') or (view_filter == 'practice' and category.name == '問題演習') %}
+            <span class="chart-legend"><i style="background: {{ category.color }}"></i>{{ category.name }}</span>
+          {% endif %}
+        {% endfor %}
+      </div>
+      <div class="chart-frame mt-5 rounded-2xl bg-slate-50 p-4">
+        <svg viewBox="0 0 620 220" class="history-chart-svg h-72 w-full">
+          <line x1="20" y1="40" x2="590" y2="40" stroke="#e2e8f0" />
+          <line x1="20" y1="86" x2="590" y2="86" stroke="#e2e8f0" />
+          <line x1="20" y1="133" x2="590" y2="133" stroke="#e2e8f0" />
+          <line x1="20" y1="180" x2="590" y2="180" stroke="#e2e8f0" />
+          {% for bar in chart_bars %}
+            {% for segment in bar.segments %}
+              <rect x="{{ segment.x }}" y="{{ segment.y }}" width="{{ segment.width }}" height="{{ segment.height }}" rx="3" fill="{{ segment.color }}">
+                <title>{{ bar.label }} / {{ segment.category }}: {{ segment.minutes }}分</title>
+              </rect>
+            {% endfor %}
+          {% endfor %}
+          <text x="20" y="210" fill="#64748b" font-size="13">{{ chart_bars[0].label }}</text>
+          <text x="280" y="210" fill="#64748b" font-size="13">{{ chart_bars[(chart_bars|length // 2)].label }}</text>
+          <text x="548" y="210" fill="#64748b" font-size="13">{{ chart_bars[-1].label }}</text>
+          <text x="592" y="44" fill="#64748b" font-size="12">{{ max_minutes }}分</text>
+          <text x="592" y="184" fill="#64748b" font-size="12">0</text>
+        </svg>
+      </div>
+    </section>
+  </div>
+
+  <section class="panel history-log-panel mt-6">
+    <div class="panel-head">
+      <h2>最近の学習履歴</h2>
+    </div>
+    <div class="mt-5 overflow-hidden rounded-2xl border border-slate-200 bg-white">
+      <div class="history-table history-table-head">
+        <span>日時</span>
+        <span>学習内容</span>
+        <span>学習時間</span>
+        <span>成果</span>
+      </div>
+      {% if recent_history %}
+        {% for item in recent_history %}
+          <div class="history-table history-table-row">
+            <div class="history-date">
+              <strong>{{ item.display_date }}</strong>
+              <span>{{ item.display_time }}</span>
+            </div>
+            <div class="history-content">
+              <span class="history-icon {{ item.type_tone }}">{{ item.type_icon }}</span>
+              <div class="safe-text">
+                <strong class="safe-text"><i class="history-type {{ item.type_tone }}">{{ item.type_label }}</i>{{ item.content }}</strong>
+                {% if item.accuracy is not none %}
+                  <p>正答率 {{ item.accuracy }}%</p>
+                {% else %}
+                  <p>理解度を記録</p>
+                {% endif %}
+              </div>
+            </div>
+            <strong class="history-minutes">{{ item.duration_label }}</strong>
+            <div class="history-result">
+              {{ item.result }}
+            </div>
+          </div>
+        {% endfor %}
+      {% else %}
+        <div class="p-8 text-center text-sm font-bold text-slate-500">まだ履歴がありません。</div>
+      {% endif %}
+    </div>
+    <a href="{{ url_for('history') }}" class="mt-4 flex items-center justify-center rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-bold text-emerald-700">すべての履歴を見る</a>
+  </section>
+</div>
+{% endblock %}

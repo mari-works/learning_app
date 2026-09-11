@@ -1,0 +1,275 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ mode_label }} - 設定{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/practice_settings.css') }}" />
+{% endblock %}
+
+{% block content %}
+{% if mode == 'normal' %}
+<div class="dashboard-page mx-auto max-w-6xl">
+  <section class="rounded-2xl border border-emerald-100 bg-emerald-50 p-5 shadow-sm">
+    <div class="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+      <div class="min-w-0 flex-1">
+        <div class="flex items-center gap-2">
+          <span class="text-emerald-700">★</span>
+          <h2 class="text-lg font-bold text-emerald-900">今日のおすすめ演習</h2>
+        </div>
+        <p class="mt-2 text-sm font-semibold text-emerald-800">未実施の問題や正答率が低い問題を組み合わせて演習します。</p>
+        <div class="mt-5 grid gap-3 sm:grid-cols-2">
+          <div class="practice-recommend-stat">
+            <span class="practice-recommend-mark warn">!</span>
+            <span>出題内容</span>
+            <strong class="recommend-text safe-text clamp-2">{{ normal_recommendation.display_title }}</strong>
+            <small>{{ normal_recommendation.reason }}</small>
+          </div>
+          <div class="practice-recommend-stat">
+            <span class="practice-recommend-mark danger">?</span>
+            <span>今日の出題数</span>
+            <strong>{{ normal_recommendation.goal }}<small>{{ normal_recommendation.goal_unit }}</small></strong>
+            <small>現在の学習状況から出題します</small>
+          </div>
+        </div>
+      </div>
+      <a href="{{ normal_recommendation.url }}" class="inline-flex shrink-0 items-center justify-center rounded-xl bg-emerald-600 px-7 py-4 text-sm font-bold text-white shadow-sm transition hover:bg-emerald-700">{{ normal_recommendation.settings_button_label }} →</a>
+    </div>
+  </section>
+
+  <div class="practice-quick-grid mt-4 grid gap-4 lg:grid-cols-2">
+    {% if normal_resume_card %}
+      <a href="{{ normal_resume_card.url }}" class="side-panel side-panel--blue min-h-[122px] rounded-2xl border border-blue-100 bg-blue-50 p-4 text-left shadow-sm transition hover:bg-blue-100">
+        <div class="flex h-full flex-col gap-3 md:flex-row md:items-center md:justify-between">
+          <div class="min-w-0">
+            <div class="flex items-center gap-2">
+              <span class="text-blue-600">↻</span>
+              <h2 class="text-base font-bold text-blue-900">前回の続きから</h2>
+            </div>
+            <p class="mt-2 text-sm font-semibold text-blue-800">{{ normal_resume_card.answered }} / {{ normal_resume_card.total }}問目まで進んでいます。</p>
+            <div class="mt-2 h-2 max-w-xs overflow-hidden rounded-full bg-white">
+              <div class="h-full rounded-full bg-blue-600" style="width: {{ normal_resume_card.rate }}%"></div>
+            </div>
+          </div>
+          <span class="inline-flex shrink-0 items-center justify-center rounded-xl bg-blue-600 px-5 py-3 text-sm font-bold text-white shadow-sm">続きから再開する →</span>
+        </div>
+      </a>
+    {% endif %}
+
+    <section class="side-panel side-panel--orange min-h-[122px] rounded-2xl border border-orange-100 bg-orange-50 p-4 shadow-sm {% if not normal_resume_card %}lg:col-span-2{% endif %}">
+      <div class="flex h-full flex-col gap-3 md:flex-row md:items-center md:justify-between">
+        <div class="min-w-0">
+          <div class="flex items-center gap-2">
+            <span class="text-orange-600">⚡</span>
+            <h2 class="text-base font-bold text-orange-900">すぐに始めたい方へ</h2>
+          </div>
+          <p class="mt-2 text-sm font-semibold text-orange-800">全問題からランダムに{{ normal_recommendation.goal }}問出題します。</p>
+        </div>
+        <a href="{{ url_for('practice_quiz', mode='random', limit=normal_recommendation.goal, start=1, reset=1) }}" class="inline-flex shrink-0 items-center justify-center rounded-xl bg-orange-400 px-5 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-orange-500">ランダムに開始する →</a>
+      </div>
+    </section>
+  </div>
+
+  <section class="mt-6 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+    <div>
+      <h2 class="text-2xl font-bold text-slate-950">条件を指定して演習を開始</h2>
+      <p class="mt-2 text-sm font-semibold text-slate-500">演習したい範囲や条件を設定できます。</p>
+    </div>
+
+    <form method="get" action="{{ url_for('practice_quiz') }}" class="practice-config-form mt-4 overflow-hidden rounded-2xl border border-slate-200 bg-white">
+      <input type="hidden" name="start" value="1" />
+      <div class="practice-setting-row">
+        <div class="practice-setting-title">
+          <span class="practice-setting-icon green">✎</span>
+          <strong>演習方法</strong>
+        </div>
+        <div class="practice-mode-tabs">
+          <label>
+            <input type="radio" name="mode" value="random" checked>
+            <span>↔ ランダム演習</span>
+          </label>
+          <label>
+            <input type="radio" name="mode" value="category">
+            <span>▣ カテゴリ演習</span>
+          </label>
+          <label>
+            <input type="radio" name="mode" value="wrong">
+            <span>↻ 間違えた問題演習</span>
+          </label>
+        </div>
+      </div>
+      <div class="practice-setting-row is-hidden" id="practice-category-row">
+        <div class="practice-setting-title">
+          <span class="practice-setting-icon blue">▣</span>
+          <strong>カテゴリ</strong>
+        </div>
+        <select id="normal-category" name="category" class="practice-select">
+          <option value="">カテゴリを選択</option>
+          {% for category in categories %}
+            <option value="{{ category }}">{{ category }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="practice-setting-row">
+        <div class="practice-setting-title">
+          <span class="practice-setting-icon purple">◎</span>
+          <strong>問題数</strong>
+        </div>
+        <select name="limit" class="practice-select">
+          {% for value in [10, 20, 30, 50] %}
+            <option value="{{ value }}" {% if value == normal_recommendation.goal %}selected{% endif %}>{{ value }}問</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="border-t border-slate-200 bg-slate-50 px-5 py-4 text-center">
+        <button type="submit" class="inline-flex w-full max-w-md items-center justify-center rounded-xl bg-emerald-600 px-8 py-4 text-base font-bold text-white shadow-sm transition hover:bg-emerald-700">演習を開始する →</button>
+      </div>
+    </form>
+  </section>
+
+  <p class="mt-4 text-xs font-bold text-slate-500">※ 演習中でもいつでも中断・再開ができます。</p>
+</div>
+
+{% elif mode == 'exam' %}
+<div class="dashboard-page mx-auto max-w-5xl">
+  <section class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm md:p-7">
+    <div class="flex flex-col gap-5 md:flex-row md:items-start md:justify-between">
+      <a href="{{ url_for('practice') }}" class="inline-flex w-fit items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">← 戻る</a>
+      <div class="text-center md:flex-1">
+        <div class="flex items-center justify-center gap-3">
+          <span class="flex h-11 w-11 items-center justify-center rounded-xl bg-emerald-50 text-2xl">📝</span>
+          <h1 class="text-2xl font-bold text-slate-950">試験モード（実践モード）</h1>
+        </div>
+        <p class="mt-3 text-sm text-slate-600">本番を想定した形式・条件で演習できます。</p>
+      </div>
+      <div class="hidden w-24 md:block"></div>
+    </div>
+
+    {% if paused_exam %}
+      {% set elapsed = paused_exam.elapsed_seconds or paused_exam.paused_elapsed_seconds or 0 %}
+      {% set remaining = (paused_exam.time_limit_seconds or 0) - elapsed %}
+      <div class="mt-7 rounded-2xl border border-emerald-300 bg-emerald-50/60 p-5">
+        <div class="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+          <div>
+            <div class="flex items-center gap-3">
+              <h2 class="text-lg font-bold text-emerald-900">中断した試験</h2>
+              <span class="rounded-lg bg-emerald-100 px-3 py-1 text-xs font-bold text-emerald-700">中断中</span>
+            </div>
+            <div class="mt-5 grid gap-4 text-sm text-slate-700 sm:grid-cols-3">
+              <div class="border-r border-emerald-200 pr-4">
+                <p class="text-xs font-semibold text-slate-500">問題</p>
+                <p class="mt-1 text-xl font-bold text-slate-950">{{ paused_exam.current_index + 1 }} / {{ paused_exam.total_questions or 145 }}</p>
+              </div>
+              <div class="border-r border-emerald-200 pr-4">
+                <p class="text-xs font-semibold text-slate-500">経過時間</p>
+                <p class="mt-1 text-xl font-bold text-slate-950">{{ format_duration(elapsed) }}</p>
+              </div>
+              <div>
+                <p class="text-xs font-semibold text-slate-500">{% if remaining >= 0 %}残り時間{% else %}超過時間{% endif %}</p>
+                <p class="mt-1 text-xl font-bold text-slate-950">{{ format_duration(remaining|abs) }}</p>
+              </div>
+            </div>
+          </div>
+          <form method="post" action="{{ url_for('practice_quiz') }}" class="lg:w-80">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+            <input type="hidden" name="mode" value="exam" />
+            <button type="submit" name="action" value="resume" class="w-full rounded-xl bg-emerald-600 px-6 py-4 text-sm font-bold text-white shadow-sm transition hover:bg-emerald-700">
+              試験を再開する
+              <span class="block text-xs font-medium text-emerald-50">問題{{ paused_exam.current_index + 1 }}から再開します</span>
+            </button>
+          </form>
+        </div>
+      </div>
+    {% endif %}
+
+    <form id="exam-form" method="get" action="{{ url_for('practice_quiz') }}" class="mt-7">
+      <input type="hidden" name="mode" value="exam" />
+      <input type="hidden" name="start" value="1" />
+      <input type="hidden" name="limit" value="{{ exam_settings.questions }}" />
+      <input type="hidden" name="time_limit" value="{{ exam_settings.minutes }}" />
+
+      <div class="border border-emerald-200 bg-emerald-50 p-6 text-center">
+        <span class="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-emerald-100 text-3xl">📝</span>
+        <h2 class="mt-4 text-xl font-bold text-emerald-800">{{ material_title }} 試験</h2>
+        <p class="mt-2 text-sm text-slate-600">教材に登録された試験条件で出題します。</p>
+        <div class="mt-6 flex flex-wrap justify-center gap-4">
+          <span class="bg-white px-6 py-3 text-xl font-bold text-slate-950 shadow-sm">{{ exam_settings.questions }}<small class="ml-1 text-xs">問</small></span>
+          <span class="bg-white px-6 py-3 text-xl font-bold text-slate-950 shadow-sm">{{ exam_settings.minutes }}<small class="ml-1 text-xs">分</small></span>
+          <span class="bg-white px-6 py-3 text-sm font-bold text-slate-700 shadow-sm">1問あたり {{ exam_config.per_question }}</span>
+        </div>
+      </div>
+
+      <div class="mt-5 rounded-xl border border-amber-200 bg-amber-50 p-5">
+        <p class="font-bold text-slate-900">実践モードの特徴</p>
+        <ul class="mt-3 space-y-1 text-sm leading-6 text-slate-700">
+          <li>・実際の試験と同じ問題数・制限時間で演習できます</li>
+          <li>・途中で正誤判定や解説は表示されません</li>
+          <li>・提出するまで採点は行われません</li>
+          <li>・一時中断して、後から再開することができます</li>
+        </ul>
+      </div>
+
+      <div class="mt-5 flex justify-center">
+        <button type="submit" class="w-full max-w-md rounded-xl bg-emerald-600 px-8 py-4 text-sm font-bold text-white shadow-sm transition hover:bg-emerald-700">試験を開始する</button>
+      </div>
+    </form>
+  </section>
+</div>
+{% else %}
+<div class="space-y-6">
+  <section class="rounded-2xl bg-white p-6 shadow-sm md:p-8">
+    <div class="flex items-center gap-4 text-sm text-slate-500">
+      <a href="{{ url_for('practice') }}" class="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-slate-600 hover:bg-slate-100">← 戻る</a>
+      <span class="font-semibold text-slate-900">{{ mode_label }}</span>
+    </div>
+
+    <section class="mt-6 rounded-2xl border border-slate-200 bg-slate-50 p-6 shadow-sm">
+      <p class="text-sm font-semibold text-slate-500">{{ mode_label }}</p>
+      <h1 class="mt-2 text-3xl font-semibold text-slate-900">{{ mode_description }}</h1>
+
+      {% if mode == 'category' %}
+        <form method="get" class="mt-6 grid gap-4 md:grid-cols-2" action="{{ url_for('practice_quiz') }}">
+          <input type="hidden" name="mode" value="category" />
+          <input type="hidden" name="start" value="1" />
+          <div>
+            <label class="mb-2 block text-sm font-semibold text-slate-700" for="category">カテゴリを選択</label>
+            <select id="category" name="category" class="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900" required>
+              <option value="">カテゴリを選択</option>
+              {% for category in categories %}
+                <option value="{{ category }}">{{ category }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div>
+            <label class="mb-2 block text-sm font-semibold text-slate-700" for="limit">問題数を選択</label>
+            <select id="limit" name="limit" class="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900">
+              {% for value in [10, 20, 50] %}
+                <option value="{{ value }}">{{ value }}問</option>
+              {% endfor %}
+            </select>
+          </div>
+          <button type="submit" class="rounded-xl bg-slate-900 px-6 py-4 text-sm font-semibold text-white transition hover:bg-slate-800 md:col-span-2">開始する</button>
+        </form>
+      {% else %}
+        <form method="get" class="mt-6 grid gap-4 md:grid-cols-2" action="{{ url_for('practice_quiz') }}">
+          <input type="hidden" name="mode" value="{{ mode }}" />
+          <input type="hidden" name="start" value="1" />
+          <div>
+            <label class="mb-2 block text-sm font-semibold text-slate-700" for="limit-field">問題数を選択</label>
+            <select id="limit-field" name="limit" class="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900">
+              {% for value in [10, 20, 50] %}
+                <option value="{{ value }}">{{ value }}問</option>
+              {% endfor %}
+            </select>
+          </div>
+          <button type="submit" class="rounded-xl bg-slate-900 px-6 py-4 text-sm font-semibold text-white transition hover:bg-slate-800 md:self-end">開始する</button>
+        </form>
+      {% endif %}
+    </section>
+  </section>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/practice_settings.js') }}"></script>
+{% endblock %}

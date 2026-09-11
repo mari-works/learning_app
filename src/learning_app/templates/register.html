@@ -1,0 +1,43 @@
+{% extends 'base.html' %}
+
+{% block title %}新規登録{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/auth.css') }}" />
+{% endblock %}
+
+{% block content %}
+<div class="auth-shell">
+  <section class="auth-card">
+    <div class="auth-brand">
+      <span>G</span>
+      <div>
+        <p>{{ material_title }}</p>
+        <h1>AI for Everyone</h1>
+      </div>
+    </div>
+    <h2>新規登録</h2>
+    <p class="auth-lead">メールアドレスは不要です。ユーザー名とパスワードで登録できます。</p>
+    {% if error %}
+      <div class="auth-error">{{ error }}</div>
+    {% endif %}
+    <form method="post" class="auth-form">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+      <label>
+        <span>ユーザー名</span>
+        <input name="username" value="{{ username }}" autocomplete="username" required />
+      </label>
+      <label>
+        <span>パスワード</span>
+        <input type="password" name="password" autocomplete="new-password" required />
+      </label>
+      <label>
+        <span>パスワード確認</span>
+        <input type="password" name="password_confirm" autocomplete="new-password" required />
+      </label>
+      <button type="submit">登録する</button>
+    </form>
+    <p class="auth-link">すでにアカウントをお持ちの場合は <a href="{{ url_for('login') }}">ログイン</a></p>
+  </section>
+</div>
+{% endblock %}

@@ -1,0 +1,102 @@
+{% extends 'base.html' %}
+
+{% block title %}フラッシュカード結果{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/flashcard_result.css') }}" />
+{% endblock %}
+
+{% block content %}
+<div class="flash-result dashboard-page mx-auto max-w-7xl">
+  <section class="result-summary-card">
+    <div class="result-donut-area">
+      <div class="result-donut" id="result-donut">
+        <div class="result-donut-inner">
+          <span>理解できた割合</span>
+          <strong id="result-rate">0%</strong>
+          <em id="result-mastered-total">0 / 0語</em>
+        </div>
+      </div>
+
+      <div class="result-legend">
+        <div class="legend-row">
+          <span class="legend-dot green"></span>
+          <strong>わかった</strong>
+          <em id="legend-mastered">0語（0%）</em>
+        </div>
+        <div class="legend-row">
+          <span class="legend-dot amber"></span>
+          <strong>あいまい</strong>
+          <em id="legend-ambiguous">0語（0%）</em>
+        </div>
+        <div class="legend-row">
+          <span class="legend-dot rose"></span>
+          <strong>わからなかった</strong>
+          <em id="legend-weak">0語（0%）</em>
+        </div>
+        <div class="legend-total">
+          <span>合計</span>
+          <strong id="legend-total">0語</strong>
+        </div>
+      </div>
+    </div>
+
+    <div class="result-info-list">
+      <div class="result-info-item">
+        <span class="info-icon green">▣</span>
+        <div>
+          <p>学習した用語数</p>
+          <strong id="info-total">0<small>語</small></strong>
+        </div>
+      </div>
+      <div class="result-info-item">
+        <span class="info-icon blue">◎</span>
+        <div>
+          <p>理解できた割合</p>
+          <strong id="info-rate">0<small>%</small></strong>
+        </div>
+      </div>
+      <div class="result-info-item">
+        <span class="info-icon slate">◷</span>
+        <div>
+          <p>学習日時</p>
+          <strong class="date-text" id="info-date">-</strong>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="result-history-card">
+    <div class="history-head">
+      <h2>今回の学習履歴</h2>
+    </div>
+    <div class="history-table-wrap">
+      <table class="history-table">
+        <thead>
+          <tr>
+            <th>No.</th>
+            <th>用語</th>
+            <th>カテゴリ</th>
+            <th>理解度</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="history-body">
+          <tr>
+            <td colspan="5" class="empty-cell">今回の学習履歴がありません。</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="result-actions">
+      <a id="retry-link" href="{{ url_for('flashcards') }}" class="secondary-action">↻ もう一度学習する</a>
+      <a href="{{ url_for('big_categories') }}" class="primary-action">▣ 用語学習トップへ</a>
+    </div>
+  </section>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/flashcard_result.js') }}"></script>
+{% endblock %}

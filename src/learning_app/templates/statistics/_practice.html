@@ -1,0 +1,306 @@
+  <section class="stats-tab-panel" data-stats-panel="practice">
+    <nav class="practice-mode-tabs" aria-label="問題演習モード">
+      <button type="button" class="is-active" data-practice-mode-tab="normal">通常演習</button>
+      <button type="button" data-practice-mode-tab="exam">試験モード</button>
+    </nav>
+
+    {% for mode_key, mode_data in [('normal', practice_modes.normal), ('exam', practice_modes.exam)] %}
+      <div class="practice-mode-panel {% if mode_key == 'normal' %}is-active{% endif %}" data-practice-mode-panel="{{ mode_key }}">
+        <section class="practice-summary-grid">
+          <article class="practice-summary-card blue">
+            <div class="summary-title">平均正答率 <span title="総正解数 ÷ 総出題数で算出します。">?</span></div>
+            <strong>{{ mode_data.summary.average_accuracy }}<small>%</small></strong>
+            <p>{{ mode_data.label }}・全期間</p>
+          </article>
+          <article class="practice-summary-card blue">
+            <div class="summary-title summary-title-long">直近5回の平均正答率 <span title="直近5回の演習結果を出題数で重み付けして算出します。">?</span></div>
+            <strong>{{ mode_data.summary.recent_accuracy }}<small>%</small></strong>
+            <p>{{ mode_data.label }}・直近5回</p>
+          </article>
+          <article class="practice-summary-card green">
+            <div class="summary-title">正解数 <span>?</span></div>
+            <strong>{{ mode_data.summary.correct }}<small>問</small></strong>
+            <p>{{ mode_data.label }}・全期間</p>
+          </article>
+          <article class="practice-summary-card red">
+            <div class="summary-title">不正解数 <span>?</span></div>
+            <strong>{{ mode_data.summary.incorrect }}<small>問</small></strong>
+            <p>{{ mode_data.label }}・全期間</p>
+          </article>
+          <article class="practice-summary-card slate">
+            <div class="summary-title">解いた問題数 <span>?</span></div>
+            <strong>{{ mode_data.summary.total }}<small>問</small></strong>
+            <p>{{ mode_data.label }}・全期間</p>
+          </article>
+        </section>
+
+        <div class="middle-grid practice-middle-grid">
+          <section class="review-card practice-review-card">
+            <div class="card-head">
+              <h2>要復習問題</h2>
+              <span>?</span>
+            </div>
+            <div class="review-count">
+              <span>↻</span>
+              <strong>{{ mode_data.review.count }}<small>問</small></strong>
+            </div>
+            {% if mode_data.review.count %}
+              <p>{{ mode_data.label }}で過去に間違えた問題のうち、まだ正解できていない問題です。</p>
+              <div class="review-breakdown">
+                <div class="red">
+                  <span>未正解の問題</span>
+                  <strong>{{ mode_data.review.never_correct }}問</strong>
+                </div>
+                <div class="amber">
+                  <span>再び不正解の問題</span>
+                  <strong>{{ mode_data.review.relapsed }}問</strong>
+                </div>
+              </div>
+              {% if mode_key == 'normal' %}
+                <a href="{{ url_for('start_home_question_review') }}" class="review-button">間違えた問題を復習する <b>›</b></a>
+              {% else %}
+                <a href="{{ url_for('practice_quiz', mode='exam', reset=1, start=1) }}" class="review-button">試験モードで再挑戦する <b>›</b></a>
+              {% endif %}
+              <small>{{ mode_data.label }}の要復習問題をもとに開始します</small>
+            {% else %}
+              <p>{{ mode_data.label }}の要復習問題はありません。</p>
+              <span class="review-button is-disabled">復習対象はありません</span>
+              <small>不正解が記録されると復習できます</small>
+            {% endif %}
+          </section>
+
+          <section class="trend-card">
+            <div class="trend-head">
+              <div class="card-head">
+                <h2>正答率の推移</h2>
+                <span>?</span>
+              </div>
+              <div class="period-tabs">
+                {% for key, label in [('7','7日'), ('30','30日'), ('90','90日'), ('all','全期間')] %}
+                  <button type="button" class="{% if key == '30' %}is-active{% endif %}" data-practice-trend-tab="{{ mode_key }}-{{ key }}">{{ label }}</button>
+                {% endfor %}
+              </div>
+            </div>
+
+            <div class="trend-chart-wrap">
+              {% for key, trend in mode_data.trend_periods.items() %}
+                <svg viewBox="0 0 760 190" class="trend-chart {% if key == '30' %}is-active{% endif %}" data-practice-trend-panel="{{ mode_key }}-{{ key }}" preserveAspectRatio="none">
+                  <line x1="24" y1="45" x2="736" y2="45"></line>
+                  <line x1="24" y1="85" x2="736" y2="85"></line>
+                  <line x1="24" y1="125" x2="736" y2="125"></line>
+                  <line x1="24" y1="170" x2="736" y2="170"></line>
+                  <polygon points="{{ trend.area }}"></polygon>
+                  <polyline points="{{ trend.polyline }}"></polyline>
+                  {% for point in trend.points %}
+                    <circle cx="{{ point.x }}" cy="{{ point.y }}" r="{% if loop.last or loop.first %}4.2{% else %}3.2{% endif %}">
+                      <title>{{ point.date.strftime('%Y/%m/%d') }} / {{ mode_data.label }} / {{ point.total }}問 / 正解{{ point.correct }}問 / 正答率{{ point.accuracy }}%</title>
+                    </circle>
+                    {% if loop.first or loop.last or loop.index0 % 3 == 0 %}
+                      <text x="{{ point.x }}" y="{{ point.y - 12 }}">{{ point.accuracy }}%</text>
+                    {% endif %}
+                  {% endfor %}
+                  <text x="24" y="186">{{ trend.points[0].date.month }}/{{ trend.points[0].date.day }}</text>
+                  <text x="374" y="186">中間</text>
+                  <text x="716" y="186">今日</text>
+                </svg>
+              {% endfor %}
+            </div>
+
+            <div class="trend-stat-grid">
+              {% for key, trend in mode_data.trend_periods.items() %}
+                <div class="trend-stat-set {% if key == '30' %}is-active{% endif %}" data-practice-trend-stats="{{ mode_key }}-{{ key }}">
+                  <article>
+                    <span>{{ trend.before_label }}</span>
+                    <strong>{{ trend.before_rate }}%</strong>
+                  </article>
+                  <article>
+                    <span>現在の平均正答率</span>
+                    <strong>{{ trend.current_rate }}%</strong>
+                  </article>
+                  <article class="green">
+                    <span>変化{% if key != 'all' %}（{{ trend.days }}日間）{% endif %}</span>
+                    <strong>{% if trend.change >= 0 %}+{% endif %}{{ trend.change }}ポイント</strong>
+                  </article>
+                </div>
+              {% endfor %}
+            </div>
+          </section>
+        </div>
+
+        <section class="detail-card">
+          <div class="detail-head">
+            <h2>詳細分析</h2>
+            <p>分析項目を選択すると、下の内容だけ切り替わります。</p>
+          </div>
+          <div class="analysis-chip-row" role="tablist" aria-label="{{ mode_data.label }} 詳細分析">
+            {% for key, label in [
+              ('practice-weak','苦手問題TOP10'),
+              ('practice-category-accuracy','カテゴリ別正答率'),
+              ('practice-priority','復習優先問題ランキング'),
+              ('practice-growth','解けるようになった問題'),
+              ('practice-never-correct','一度も解けていない問題')
+            ] %}
+              <button type="button" class="analysis-chip {% if loop.first %}is-active{% endif %}" data-practice-analysis-tab="{{ mode_key }}-{{ key }}">{{ label }}</button>
+            {% endfor %}
+          </div>
+
+          <div class="practice-analysis-content is-active" data-practice-analysis-panel="{{ mode_key }}-practice-weak">
+            {% if mode_data.detail_analysis.weak_questions_top10 %}
+              <div class="analysis-toolbar">
+                <label>カテゴリ
+                  <select data-detail-category-filter>
+                    <option value="all">すべて</option>
+                    {% for category_item in mode_data.detail_analysis.category_accuracy %}
+                      <option value="{{ category_item.name }}">{{ category_item.name }}</option>
+                    {% endfor %}
+                  </select>
+                </label>
+              </div>
+              <div class="practice-detail-table practice-weak-table">
+                <div class="practice-detail-head"><span>順位</span><span>問題ID</span><span>問題文</span><span>カテゴリ</span><span>正答率</span><span>正解数/回答回数</span><span>最終回答日</span><span></span></div>
+                {% for item in mode_data.detail_analysis.weak_questions_top10 %}
+                  <div class="practice-detail-row" data-detail-category="{{ item.category }}">
+                    <b class="rank-badge rank-{{ loop.index }}">{{ loop.index }}</b>
+                    <strong>Q-{{ item.id }}</strong>
+                    <span class="question-snippet safe-text clamp-2" title="{{ item.question }}">{{ item.question }}</span>
+                    <em class="category-badge badge-text clamp-2">{{ item.category }}</em>
+                    <mark class="accuracy-pill accuracy-{{ item.accuracy_tone }}">{{ item.accuracy }}%・{{ item.accuracy_label }}</mark>
+                    <p>{{ item.correct }}/{{ item.attempts }}</p>
+                    <p>{{ item.last_answered_label }}</p>
+                    <a href="{{ item.review_url }}">復習</a>
+                  </div>
+                {% endfor %}
+              </div>
+              <div class="empty-analysis" data-category-empty hidden>選択したカテゴリのデータはありません。</div>
+            {% else %}
+              <div class="empty-analysis">まだ分析できるデータがありません。</div>
+            {% endif %}
+          </div>
+
+          <div class="practice-analysis-content" data-practice-analysis-panel="{{ mode_key }}-practice-category-accuracy">
+            {% if mode_data.detail_analysis.category_accuracy %}
+              <div class="analysis-toolbar">
+                <label>並び替え
+                  <select data-practice-category-sort="{{ mode_key }}">
+                    <option value="low">正答率が低い順</option>
+                    <option value="high">正答率が高い順</option>
+                    <option value="total">回答数が多い順</option>
+                    <option value="name">カテゴリ名順</option>
+                  </select>
+                </label>
+              </div>
+              <div class="practice-detail-table practice-category-table" data-practice-category-table="{{ mode_key }}">
+                <div class="practice-detail-head"><span>カテゴリ名</span><span>正答率</span><span>正解数</span><span>回答数</span><span>状態</span><span>進捗</span></div>
+                {% for item in mode_data.detail_analysis.category_accuracy %}
+                  <div class="practice-detail-row" data-practice-category-row data-accuracy="{{ item.accuracy }}" data-total="{{ item.total }}" data-name="{{ item.name }}">
+                    <strong class="safe-text clamp-2">{{ item.name }}</strong>
+                    <mark class="accuracy-pill accuracy-{{ item.tone }}">{{ item.accuracy }}%</mark>
+                    <p>{{ item.correct }}</p>
+                    <p>{{ item.total }}</p>
+                    <em class="category-badge badge-text {{ item.tone }}">{{ item.label }}</em>
+                    <i class="practice-progress"><u style="width: {{ item.accuracy }}%;"></u></i>
+                  </div>
+                {% endfor %}
+              </div>
+            {% else %}
+              <div class="empty-analysis">まだ分析できるデータがありません。</div>
+            {% endif %}
+          </div>
+
+          <div class="practice-analysis-content" data-practice-analysis-panel="{{ mode_key }}-practice-priority">
+            {% if mode_data.detail_analysis.review_priority %}
+              <div class="analysis-toolbar">
+                <label>カテゴリ
+                  <select data-detail-category-filter>
+                    <option value="all">すべて</option>
+                    {% for category_item in mode_data.detail_analysis.category_accuracy %}
+                      <option value="{{ category_item.name }}">{{ category_item.name }}</option>
+                    {% endfor %}
+                  </select>
+                </label>
+              </div>
+              <div class="practice-detail-table practice-priority-table">
+                <div class="practice-detail-head"><span>順位</span><span>問題ID</span><span>カテゴリ</span><span>不正解回数</span><span>正答率</span><span>最終不正解日</span><span></span></div>
+                {% for item in mode_data.detail_analysis.review_priority %}
+                  <div class="practice-detail-row" data-detail-category="{{ item.category }}">
+                    <b class="rank-badge rank-{{ loop.index }}">{{ loop.index }}</b>
+                    <strong>Q-{{ item.id }}</strong>
+                    <em class="category-badge badge-text clamp-2">{{ item.category }}</em>
+                    <p>{{ item.incorrect }}</p>
+                    <mark class="accuracy-pill accuracy-{{ item.accuracy_tone }}">{{ item.accuracy }}%</mark>
+                    <p>{{ item.last_incorrect_label }}</p>
+                    <a href="{{ item.review_url }}">復習</a>
+                  </div>
+                {% endfor %}
+              </div>
+              <div class="empty-analysis" data-category-empty hidden>選択したカテゴリのデータはありません。</div>
+            {% else %}
+              <div class="empty-analysis">まだ分析できるデータがありません。</div>
+            {% endif %}
+          </div>
+
+          <div class="practice-analysis-content" data-practice-analysis-panel="{{ mode_key }}-practice-growth">
+            {% if mode_data.detail_analysis.improved_questions %}
+              <div class="analysis-toolbar">
+                <label>カテゴリ
+                  <select data-detail-category-filter>
+                    <option value="all">すべて</option>
+                    {% for category_item in mode_data.detail_analysis.category_accuracy %}
+                      <option value="{{ category_item.name }}">{{ category_item.name }}</option>
+                    {% endfor %}
+                  </select>
+                </label>
+              </div>
+              <div class="practice-detail-table practice-growth-table">
+                <div class="practice-detail-head"><span>順位</span><span>問題ID</span><span>カテゴリ</span><span>過去の不正解回数</span><span>最後に正解した日</span><span>変化</span></div>
+                {% for item in mode_data.detail_analysis.improved_questions %}
+                  <div class="practice-detail-row" data-detail-category="{{ item.category }}">
+                    <b class="rank-badge rank-{{ loop.index }}">{{ loop.index }}</b>
+                    <strong>Q-{{ item.id }}</strong>
+                    <em class="category-badge badge-text clamp-2">{{ item.category }}</em>
+                    <p>{{ item.past_incorrect }}</p>
+                    <p>{{ item.last_correct_label }}</p>
+                    <mark class="accuracy-pill accuracy-green">{{ item.change_label }}</mark>
+                  </div>
+                {% endfor %}
+              </div>
+              <div class="empty-analysis" data-category-empty hidden>選択したカテゴリのデータはありません。</div>
+            {% else %}
+              <div class="empty-analysis">まだ分析できるデータがありません。</div>
+            {% endif %}
+          </div>
+
+          <div class="practice-analysis-content" data-practice-analysis-panel="{{ mode_key }}-practice-never-correct">
+            {% if mode_data.detail_analysis.never_correct %}
+              <div class="analysis-toolbar">
+                <label>カテゴリ
+                  <select data-detail-category-filter>
+                    <option value="all">すべて</option>
+                    {% for category_item in mode_data.detail_analysis.category_accuracy %}
+                      <option value="{{ category_item.name }}">{{ category_item.name }}</option>
+                    {% endfor %}
+                  </select>
+                </label>
+              </div>
+              <div class="practice-detail-table practice-never-table">
+                <div class="practice-detail-head"><span>順位</span><span>問題ID</span><span>カテゴリ</span><span>回答回数</span><span>最終回答日</span><span></span></div>
+                {% for item in mode_data.detail_analysis.never_correct %}
+                  <div class="practice-detail-row" data-detail-category="{{ item.category }}">
+                    <b class="rank-badge rank-{{ loop.index }}">{{ loop.index }}</b>
+                    <strong>Q-{{ item.id }}</strong>
+                    <em class="category-badge badge-text clamp-2">{{ item.category }}</em>
+                    <p>{{ item.attempts }}</p>
+                    <p>{{ item.last_answered_label }}</p>
+                    <a href="{{ item.review_url }}">復習</a>
+                  </div>
+                {% endfor %}
+              </div>
+              <div class="empty-analysis" data-category-empty hidden>選択したカテゴリのデータはありません。</div>
+            {% else %}
+              <div class="empty-analysis">まだ分析できるデータがありません。</div>
+            {% endif %}
+          </div>
+        </section>
+      </div>
+    {% endfor %}
+  </section>
