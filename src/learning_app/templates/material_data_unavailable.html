@@ -1,0 +1,14 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ feature_name }}{% endblock %}
+
+{% block content %}
+<div class="mx-auto flex min-h-[60vh] max-w-3xl items-center justify-center px-4">
+  <section class="w-full rounded-lg border border-slate-200 bg-white px-6 py-12 text-center shadow-sm sm:px-10">
+    <span class="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-slate-100 text-2xl text-slate-500" aria-hidden="true">{{ feature_icon }}</span>
+    <h2 class="mt-5 text-xl font-bold text-slate-950">{{ feature_name }}は利用できません</h2>
+    <p class="mx-auto mt-3 max-w-xl text-sm leading-7 text-slate-600">この教材には{{ csv_name }}が登録されていません。教材データの編集画面から{{ csv_name }}を登録してください。</p>
+    <a href="{{ url_for('materials', edit=selected_course.id) }}" class="mt-7 inline-flex items-center justify-center rounded-lg bg-sky-600 px-5 py-3 text-sm font-bold text-white hover:bg-sky-700">教材を編集する</a>
+  </section>
+</div>
+{% endblock %}

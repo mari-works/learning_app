@@ -79,7 +79,7 @@
       renderPreview(kind, result);
       previewWrap.classList.remove('hidden');
     } catch (error) {
-      csvState[kind] = null;
+      csvState[kind] = false;
       showValidation(kind, false, error.message);
       previewWrap.classList.add('hidden');
     }
@@ -109,17 +109,27 @@
   examToggle.addEventListener('change', syncExam); syncExam();
 
   const stepError = form.querySelector('[data-step-error]');
+  const csvStepError = form.querySelector('[data-csv-step-error]');
   const validateStep = () => {
     stepError.classList.add('hidden');
+    csvStepError.classList.add('hidden');
     if (step === 1) {
       const title = form.elements.title;
       if (!title.value.trim()) { stepError.textContent = '教材名を入力してください。'; stepError.classList.remove('hidden'); title.focus(); return false; }
       if (examToggle.checked && (!form.elements.exam_question_count.value || !form.elements.exam_time_minutes.value)) { stepError.textContent = '試験の問題数と制限時間を入力してください。'; stepError.classList.remove('hidden'); return false; }
     }
-    if (step === 2 && (!csvState.terms || !csvState.questions)) {
-      if (!csvState.terms) showValidation('terms', false, '正しい用語CSVを選択してください。');
-      if (!csvState.questions) showValidation('questions', false, '正しい問題CSVを選択してください。');
-      return false;
+    if (step === 2) {
+      if (csvState.terms === false || csvState.questions === false) return false;
+      if (!csvState.terms && !csvState.questions) {
+        csvStepError.textContent = '用語CSVまたは問題CSVのどちらかを選択してください。';
+        csvStepError.classList.remove('hidden');
+        return false;
+      }
+      if (examToggle.checked && !csvState.questions) {
+        csvStepError.textContent = '試験モードを使用するには問題CSVが必要です。';
+        csvStepError.classList.remove('hidden');
+        return false;
+      }
     }
     return true;
   };
@@ -131,9 +141,10 @@
     document.querySelector('[data-confirm-exam]').textContent = exam ? '使用する' : '使用しない';
     document.querySelector('[data-confirm-question]').textContent = exam ? `${form.elements.exam_question_count.value}問` : '—';
     document.querySelector('[data-confirm-time]').textContent = exam ? `${form.elements.exam_time_minutes.value}分` : '—';
-    document.querySelector('[data-confirm-terms]').textContent = `${csvState.terms.records.length}件`;
-    document.querySelector('[data-confirm-questions]').textContent = `${csvState.questions.records.length}件`;
-    const categories = new Set([...csvState.terms.records, ...csvState.questions.records].map(record => record['カテゴリ']));
+    document.querySelector('[data-confirm-terms]').textContent = `${csvState.terms ? csvState.terms.records.length : 0}件`;
+    document.querySelector('[data-confirm-questions]').textContent = `${csvState.questions ? csvState.questions.records.length : 0}件`;
+    const records = [csvState.terms, csvState.questions].filter(Boolean).flatMap(item => item.records);
+    const categories = new Set(records.map(record => record['カテゴリ']));
     document.querySelector('[data-confirm-categories]').textContent = `${categories.size}件`;
   };
 
@@ -154,6 +165,8 @@
 
   form.querySelector('[data-next]').addEventListener('click', () => { if (!validateStep()) return; step += 1; if (step === 3) fillConfirmation(); render(); });
   form.querySelector('[data-back]').addEventListener('click', () => { step -= 1; render(); });
-  form.addEventListener('submit', event => { if (step !== 3 || !csvState.terms || !csvState.questions) event.preventDefault(); });
+  form.addEventListener('submit', event => {
+    if (step !== 3 || (!csvState.terms && !csvState.questions) || csvState.terms === false || csvState.questions === false) event.preventDefault();
+  });
   render();
 })();

@@ -251,6 +251,22 @@ def current_database_path():
     return Path(current_course()["database_path"])
 
 
+def render_material_data_unavailable(data_type):
+    selected_course = current_course()
+    options = {
+        "terms": ("用語学習", "用語CSV", "▤"),
+        "questions": ("問題演習", "問題CSV", "✎"),
+    }
+    feature_name, csv_name, feature_icon = options[data_type]
+    return render_template(
+        "material_data_unavailable.html",
+        selected_course=selected_course,
+        feature_name=feature_name,
+        csv_name=csv_name,
+        feature_icon=feature_icon,
+    )
+
+
 def clear_course_session_state():
     for key in list(session.keys()):
         if (
@@ -2827,13 +2843,18 @@ def add_material():
             error = "教材名は80文字以内で入力してください。"
         elif len(description) > 500:
             error = "説明は500文字以内で入力してください。"
-        elif not (terms_upload and terms_upload.filename and questions_upload and questions_upload.filename):
-            error = "用語CSVと問題CSVの両方を選択してください。"
+        elif not (
+            (terms_upload and terms_upload.filename)
+            or (questions_upload and questions_upload.filename)
+        ):
+            error = "用語CSVまたは問題CSVのどちらかを選択してください。"
         try:
             if error is None:
-                keyword_rows = parse_keyword_upload(terms_upload)
-                question_rows = parse_question_upload(questions_upload)
-                if exam_enabled and not (1 <= exam_question_count <= len(question_rows)):
+                keyword_rows = parse_keyword_upload(terms_upload) if terms_upload and terms_upload.filename else []
+                question_rows = parse_question_upload(questions_upload) if questions_upload and questions_upload.filename else []
+                if exam_enabled and not question_rows:
+                    error = "試験モードを使用するには問題CSVが必要です。"
+                elif exam_enabled and not (1 <= exam_question_count <= len(question_rows)):
                     error = f"試験の問題数は1〜{len(question_rows)}問で設定してください。"
                 elif exam_enabled and not (1 <= exam_time_minutes <= 1440):
                     error = "試験の制限時間は1〜1440分で設定してください。"
@@ -2902,8 +2923,8 @@ def materials():
             exam_enabled = request.form.get("exam_enabled") == "1"
             exam_question_count = parse_int(request.form.get("exam_question_count"), 0)
             exam_time_minutes = parse_int(request.form.get("exam_time_minutes"), 0)
-            if action == "create" and not (changes_terms and changes_questions):
-                error = "新しい教材には用語CSVと問題CSVの両方が必要です。"
+            if action == "create" and not (changes_terms or changes_questions):
+                error = "新しい教材には用語CSVまたは問題CSVのどちらかが必要です。"
             elif action == "update" and (changes_terms or changes_questions) and request.form.get("confirm_replace") != "yes":
                 error = "変更するCSVに対応する学習履歴がリセットされることを確認してください。"
             try:
@@ -2914,7 +2935,9 @@ def materials():
                     if question_rows is not None
                     else get_material_counts(edit_db_path)["questions"]
                 )
-                if exam_enabled and not (1 <= exam_question_count <= available_questions):
+                if exam_enabled and available_questions == 0:
+                    error = "試験モードを使用するには問題CSVが必要です。"
+                elif exam_enabled and not (1 <= exam_question_count <= available_questions):
                     error = f"試験の問題数は1〜{available_questions}問で設定してください。"
                 elif exam_enabled and not (1 <= exam_time_minutes <= 1440):
                     error = "試験の制限時間は1〜1440分で設定してください。"
@@ -3408,6 +3431,8 @@ def start_home_question_review():
 @app.route("/big-categories")
 @login_required
 def big_categories():
+    if get_material_counts(current_database_path())["keywords"] == 0:
+        return render_material_data_unavailable("terms")
     user_id = current_user_id()
     dashboard = get_dashboard(app.config["DATABASE"], user_id=user_id)
     big_categories_list = get_big_categories(app.config["DATABASE"])
@@ -3480,6 +3505,8 @@ def categories():
 @app.route("/flashcards/settings")
 @login_required
 def flashcard_settings():
+    if get_material_counts(current_database_path())["keywords"] == 0:
+        return render_material_data_unavailable("terms")
     user_id = current_user_id()
     dashboard = get_dashboard(app.config["DATABASE"], user_id=user_id)
     selected_step = request.args.get("step", "menu")
@@ -3560,6 +3587,8 @@ def category_detail():
 @app.route("/keywords")
 @login_required
 def keywords():
+    if get_material_counts(current_database_path())["keywords"] == 0:
+        return render_material_data_unavailable("terms")
     user_id = current_user_id()
     big_category = request.args.get("big_category")
     category = request.args.get("category")
@@ -3688,6 +3717,8 @@ def keyword_detail(keyword_id):
 @login_required
 def practice():
     """モード選択画面"""
+    if get_material_counts(current_database_path())["questions"] == 0:
+        return render_material_data_unavailable("questions")
     user_id = current_user_id()
     stats_row = query_db(
         app.config["DATABASE"],
@@ -3746,6 +3777,8 @@ def practice():
 @login_required
 def practice_settings():
     """モード設定画面（カテゴリ選択など）"""
+    if get_material_counts(current_database_path())["questions"] == 0:
+        return render_material_data_unavailable("questions")
     mode = request.args.get("mode")
     if not mode or mode not in ["normal", "random", "category", "wrong", "review", "exam"]:
         return redirect(url_for("practice"))
@@ -3816,6 +3849,8 @@ def practice_settings():
 @login_required
 def practice_quiz():
     """問題演習画面"""
+    if get_material_counts(current_database_path())["questions"] == 0:
+        return render_material_data_unavailable("questions")
     mode = request.args.get("mode") or request.form.get("mode")
     if mode == "exam" and not get_exam_settings(current_database_path())["enabled"]:
         flash("この教材では試験モードが設定されていません。", "error")
@@ -5034,6 +5069,8 @@ def statistics():
 @app.route("/flashcards")
 @login_required
 def flashcards():
+    if get_material_counts(current_database_path())["keywords"] == 0:
+        return render_material_data_unavailable("terms")
     user_id = current_user_id()
     keyword_id = request.args.get("keyword_id")
     fixed_keyword_ids = parse_keyword_ids_param(request.args.get("keyword_ids"))
