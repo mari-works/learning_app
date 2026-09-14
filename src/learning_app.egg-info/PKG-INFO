@@ -1,4 +1,16 @@
-# 学習システム
+Metadata-Version: 2.4
+Name: learning-app
+Version: 0.1.0
+Summary: CSV-based learning support web application
+Requires-Python: >=3.11
+Description-Content-Type: text/markdown
+Requires-Dist: Flask==3.1.3
+Requires-Dist: Flask-Login==0.6.3
+Requires-Dist: Flask-SQLAlchemy==3.1.1
+Provides-Extra: dev
+Requires-Dist: pytest; extra == "dev"
+
+# CSV教材対応 学習支援アプリ
 
 CSVで教材を登録し、複数分野の学習に利用できるWebアプリケーションです。
 
